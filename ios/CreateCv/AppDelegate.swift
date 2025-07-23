@@ -24,7 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "ReactNativeNewsApp",
+      withModuleName: "Create Cv",
       in: window,
       launchOptions: launchOptions
     )

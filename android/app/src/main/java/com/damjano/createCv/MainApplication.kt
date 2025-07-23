@@ -1,4 +1,4 @@
-package com.reactnativenewsapp
+package com.damjano.createCv
 
 import android.app.Application
 import com.facebook.react.PackageList
