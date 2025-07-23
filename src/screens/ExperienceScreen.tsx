@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme, BackHandler } from 'react-native';
 
 interface Experience {
   jobTitle: string;
@@ -13,14 +13,28 @@ const ExperienceScreen = ({ navigation }: any) => {
   const [experiences, setExperiences] = useState<Experience[]>([
     { jobTitle: '', company: '', startDate: '', endDate: '', description: '' },
   ]);
+  const [errors, setErrors] = useState<{ [key: number]: { jobTitle?: boolean; company?: boolean; startDate?: boolean } }>({});
+  const [errorMsg, setErrorMsg] = useState('');
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
+
+  useEffect(() => {
+    // Block hardware back
+    const handler = () => true;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    navigation.setOptions && navigation.setOptions({ gestureEnabled: false });
+  }, [navigation]);
 
   const handleChange = (index: number, field: keyof Experience, value: string) => {
     const updated = [...experiences];
     updated[index][field] = value;
     setExperiences(updated);
+    setErrors(e => ({ ...e, [index]: { ...e[index], [field]: false } }));
   };
 
   const addExperience = () => {
@@ -30,34 +44,54 @@ const ExperienceScreen = ({ navigation }: any) => {
     ]);
   };
 
+  const validate = () => {
+    let valid = true;
+    const newErrors: { [key: number]: { jobTitle?: boolean; company?: boolean; startDate?: boolean } } = {};
+    experiences.forEach((exp, idx) => {
+      const entryErr: { jobTitle?: boolean; company?: boolean; startDate?: boolean } = {};
+      if (!exp.jobTitle.trim()) { entryErr.jobTitle = true; valid = false; }
+      if (!exp.company.trim()) { entryErr.company = true; valid = false; }
+      if (!exp.startDate.trim()) { entryErr.startDate = true; valid = false; }
+      if (Object.keys(entryErr).length > 0) newErrors[idx] = entryErr;
+    });
+    setErrors(newErrors);
+    if (!valid) setErrorMsg('Please fill in all required fields for each experience.');
+    else setErrorMsg('');
+    return valid;
+  };
+
   const handleNext = () => {
+    if (!validate()) return;
     // TODO: Save data to context or state management
     navigation.navigate('Education');
   };
+
+  const allFilled = experiences.every(exp => exp.jobTitle.trim() && exp.company.trim() && exp.startDate.trim());
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.title}>Experience</Text>
+        {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
         {experiences.map((exp, idx) => (
           <View key={idx} style={styles.expBlock}>
             <TextInput
-              style={styles.input}
-              placeholder="Job Title"
+              style={[styles.input, errors[idx]?.jobTitle && styles.inputError]}
+              placeholder="Job Title *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={exp.jobTitle}
               onChangeText={v => handleChange(idx, 'jobTitle', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Company"
+              style={[styles.input, errors[idx]?.company && styles.inputError]}
+              placeholder="Company *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={exp.company}
               onChangeText={v => handleChange(idx, 'company', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Start Date"
+              style={[styles.input, errors[idx]?.startDate && styles.inputError]}
+              placeholder="Start Date *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={exp.startDate}
               onChangeText={v => handleChange(idx, 'startDate', v)}
@@ -82,8 +116,13 @@ const ExperienceScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={addExperience} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+ Add Experience</Text>
         </TouchableOpacity>
-        <View style={styles.buttonWrapper}>
-          <Button title="Next: Education" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+        <View style={styles.buttonRow}>
+          <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}>
+            <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+          </View>
+          <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}>
+            <Button title="Next: Education" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} disabled={!allFilled} />
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -133,6 +172,15 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     backgroundColor: isDark ? '#23262F' : '#fff',
     color: isDark ? '#fff' : '#222',
   },
+  inputError: {
+    borderColor: '#e53935',
+  },
+  errorMsg: {
+    color: '#e53935',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   addBtn: {
     marginBottom: 24,
     alignItems: 'center',
@@ -146,6 +194,10 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    marginTop: 12,
   },
 });
 

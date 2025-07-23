@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme, BackHandler } from 'react-native';
 
 interface Education {
   school: string;
@@ -13,14 +13,28 @@ const EducationScreen = ({ navigation }: any) => {
   const [educations, setEducations] = useState<Education[]>([
     { school: '', degree: '', startDate: '', endDate: '', description: '' },
   ]);
+  const [errors, setErrors] = useState<{ [key: number]: { school?: boolean; degree?: boolean; startDate?: boolean } }>({});
+  const [errorMsg, setErrorMsg] = useState('');
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
+
+  useEffect(() => {
+    // Block hardware back
+    const handler = () => true;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    navigation.setOptions && navigation.setOptions({ gestureEnabled: false });
+  }, [navigation]);
 
   const handleChange = (index: number, field: keyof Education, value: string) => {
     const updated = [...educations];
     updated[index][field] = value;
     setEducations(updated);
+    setErrors(e => ({ ...e, [index]: { ...e[index], [field]: false } }));
   };
 
   const addEducation = () => {
@@ -30,34 +44,54 @@ const EducationScreen = ({ navigation }: any) => {
     ]);
   };
 
+  const validate = () => {
+    let valid = true;
+    const newErrors: { [key: number]: { school?: boolean; degree?: boolean; startDate?: boolean } } = {};
+    educations.forEach((edu, idx) => {
+      const entryErr: { school?: boolean; degree?: boolean; startDate?: boolean } = {};
+      if (!edu.school.trim()) { entryErr.school = true; valid = false; }
+      if (!edu.degree.trim()) { entryErr.degree = true; valid = false; }
+      if (!edu.startDate.trim()) { entryErr.startDate = true; valid = false; }
+      if (Object.keys(entryErr).length > 0) newErrors[idx] = entryErr;
+    });
+    setErrors(newErrors);
+    if (!valid) setErrorMsg('Please fill in all required fields for each education entry.');
+    else setErrorMsg('');
+    return valid;
+  };
+
   const handleNext = () => {
+    if (!validate()) return;
     // TODO: Save data to context or state management
     navigation.navigate('Skills');
   };
+
+  const allFilled = educations.every(edu => edu.school.trim() && edu.degree.trim() && edu.startDate.trim());
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.title}>Education</Text>
+        {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
         {educations.map((edu, idx) => (
           <View key={idx} style={styles.eduBlock}>
             <TextInput
-              style={styles.input}
-              placeholder="School"
+              style={[styles.input, errors[idx]?.school && styles.inputError]}
+              placeholder="School *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.school}
               onChangeText={v => handleChange(idx, 'school', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Degree"
+              style={[styles.input, errors[idx]?.degree && styles.inputError]}
+              placeholder="Degree *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.degree}
               onChangeText={v => handleChange(idx, 'degree', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Start Date"
+              style={[styles.input, errors[idx]?.startDate && styles.inputError]}
+              placeholder="Start Date *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.startDate}
               onChangeText={v => handleChange(idx, 'startDate', v)}
@@ -82,8 +116,13 @@ const EducationScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={addEducation} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+ Add Education</Text>
         </TouchableOpacity>
-        <View style={styles.buttonWrapper}>
-          <Button title="Next: Skills" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+        <View style={styles.buttonRow}>
+          <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+            <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+          </View>
+          <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+            <Button title="Next: Skills" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} disabled={!allFilled} />
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -133,6 +172,15 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     backgroundColor: isDark ? '#23262F' : '#fff',
     color: isDark ? '#fff' : '#222',
   },
+  inputError: {
+    borderColor: '#e53935',
+  },
+  errorMsg: {
+    color: '#e53935',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   addBtn: {
     marginBottom: 24,
     alignItems: 'center',
@@ -146,6 +194,10 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    marginTop: 12,
   },
 });
 

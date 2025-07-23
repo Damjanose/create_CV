@@ -39,8 +39,13 @@ const SkillsScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={addSkill} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+ Add Skill</Text>
         </TouchableOpacity>
-        <View style={styles.buttonWrapper}>
-          <Button title="Next: Review & Generate" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+        <View style={styles.buttonRow}>
+          <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}>
+            <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+          </View>
+          <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}>
+            <Button title="Next: Review & Generate" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -95,6 +100,10 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    marginTop: 12,
   },
 });
 
