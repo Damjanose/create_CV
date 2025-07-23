@@ -1,32 +1,50 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
 
-const SkillsScreen = ({ navigation }: any) => {
-  const [skills, setSkills] = useState<string[]>(['']);
+const SkillsScreen = ({
+  navigation,
+  data,
+  setData,
+  errorMsg,
+  setErrorMsg,
+  isWizard,
+}: any) => {
+  const [local, setLocal] = useState(['']);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
 
+  const state = isWizard ? data || local : local;
+  const setState = isWizard && setData ? setData : setLocal;
+  const errMsg = isWizard ? errorMsg : undefined;
+  const setErrMsg = isWizard && setErrorMsg ? setErrorMsg : undefined;
+
   const handleChange = (index: number, value: string) => {
-    const updated = [...skills];
+    const updated = [...state];
     updated[index] = value;
-    setSkills(updated);
+    setState(updated);
   };
 
   const addSkill = () => {
-    setSkills([...skills, '']);
+    setState([...state, '']);
   };
 
+  const allFilled = state.some((s: string) => s.trim());
+
   const handleNext = () => {
-    // TODO: Save data to context or state management
-    navigation.navigate('ReviewGenerate');
+    if (!allFilled && setErrMsg) {
+      setErrMsg('Please enter at least one skill.');
+      return;
+    }
+    if (!isWizard && navigation) navigation.navigate('ReviewGenerate');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.title}>Skills</Text>
-        {skills.map((skill, idx) => (
+        {errMsg ? <Text style={styles.errorMsg}>{errMsg}</Text> : null}
+        {state.map((skill: string, idx: number) => (
           <TextInput
             key={idx}
             style={styles.input}
@@ -39,14 +57,16 @@ const SkillsScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={addSkill} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+ Add Skill</Text>
         </TouchableOpacity>
-        <View style={styles.buttonRow}>
-          <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}>
-            <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+        {!isWizard && (
+          <View style={styles.buttonRow}>
+            <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+              <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+            </View>
+            <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+              <Button title="Next: Review & Generate" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+            </View>
           </View>
-          <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}>
-            <Button title="Next: Review & Generate" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
-          </View>
-        </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -104,6 +124,12 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     marginTop: 12,
+  },
+  errorMsg: {
+    color: '#e53935',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 

@@ -7,15 +7,31 @@ const TEMPLATES = [
   { id: 'minimal', name: 'Minimal', description: 'Simple and elegant.' },
 ];
 
-const ReviewGenerateScreen = ({ navigation }: any) => {
+const ReviewGenerateScreen = ({
+  navigation,
+  aboutMe,
+  experience,
+  education,
+  skills,
+  isWizard,
+}: any) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [showTemplates, setShowTemplates] = useState(false);
 
-  // TODO: Replace with real CV data from context/state
-  const mockCV = {
+  // Use props if provided, otherwise fallback to mock
+  const cv = aboutMe && experience && education && skills ? {
+    name: aboutMe.name,
+    email: aboutMe.email,
+    phone: aboutMe.phone,
+    address: aboutMe.address,
+    summary: aboutMe.summary,
+    experience,
+    education,
+    skills,
+  } : {
     name: 'John Doe',
     email: 'john@example.com',
     phone: '+123456789',
@@ -56,13 +72,13 @@ const ReviewGenerateScreen = ({ navigation }: any) => {
           <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
             <Text style={styles.title}>Review Your CV</Text>
             <Text style={styles.sectionTitle}>About Me</Text>
-            <Text style={styles.field}><Text style={styles.label}>Name:</Text> {mockCV.name}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Email:</Text> {mockCV.email}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Phone:</Text> {mockCV.phone}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Address:</Text> {mockCV.address}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Summary:</Text> {mockCV.summary}</Text>
+            <Text style={styles.field}><Text style={styles.label}>Name:</Text> {cv.name}</Text>
+            <Text style={styles.field}><Text style={styles.label}>Email:</Text> {cv.email}</Text>
+            <Text style={styles.field}><Text style={styles.label}>Phone:</Text> {cv.phone}</Text>
+            <Text style={styles.field}><Text style={styles.label}>Address:</Text> {cv.address}</Text>
+            <Text style={styles.field}><Text style={styles.label}>Summary:</Text> {cv.summary}</Text>
             <Text style={styles.sectionTitle}>Experience</Text>
-            {mockCV.experience.map((exp, i) => (
+            {cv.experience.map((exp: any, i: number) => (
               <View key={i} style={styles.subBlock}>
                 <Text style={styles.field}><Text style={styles.label}>Job:</Text> {exp.jobTitle} at {exp.company}</Text>
                 <Text style={styles.field}><Text style={styles.label}>Period:</Text> {exp.startDate} - {exp.endDate}</Text>
@@ -70,7 +86,7 @@ const ReviewGenerateScreen = ({ navigation }: any) => {
               </View>
             ))}
             <Text style={styles.sectionTitle}>Education</Text>
-            {mockCV.education.map((edu, i) => (
+            {cv.education.map((edu: any, i: number) => (
               <View key={i} style={styles.subBlock}>
                 <Text style={styles.field}><Text style={styles.label}>School:</Text> {edu.school}</Text>
                 <Text style={styles.field}><Text style={styles.label}>Degree:</Text> {edu.degree}</Text>
@@ -79,19 +95,21 @@ const ReviewGenerateScreen = ({ navigation }: any) => {
               </View>
             ))}
             <Text style={styles.sectionTitle}>Skills</Text>
-            <Text style={styles.field}>{mockCV.skills.join(', ')}</Text>
-            <View style={styles.buttonRow}>
-              <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
-                <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+            <Text style={styles.field}>{cv.skills.join(', ')}</Text>
+            {!isWizard && (
+              <View style={styles.buttonRow}>
+                <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+                  <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+                </View>
+                <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+                  <Button
+                    title="Next: Choose Template"
+                    onPress={() => setShowTemplates(true)}
+                    color={isDark ? '#4F8EF7' : '#1976D2'}
+                  />
+                </View>
               </View>
-              <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
-                <Button
-                  title="Next: Choose Template"
-                  onPress={() => setShowTemplates(true)}
-                  color={isDark ? '#4F8EF7' : '#1976D2'}
-                />
-              </View>
-            </View>
+            )}
           </ScrollView>
         ) : (
           <>
@@ -210,17 +228,16 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     color: isDark ? '#fff' : '#222',
     marginBottom: 8,
   },
+  selectedLabel: {
+    color: isDark ? '#4F8EF7' : '#1976D2',
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
   templateDesc: {
     fontSize: 14,
     color: isDark ? '#aaa' : '#555',
     textAlign: 'center',
     marginBottom: 12,
-  },
-  selectedLabel: {
-    marginTop: 8,
-    color: isDark ? '#4F8EF7' : '#1976D2',
-    fontWeight: 'bold',
-    fontSize: 13,
   },
   buttonWrapper: {
     marginTop: 12,
