@@ -67,77 +67,75 @@ const ReviewGenerateScreen = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        {!showTemplates ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-            <Text style={styles.title}>Review Your CV</Text>
-            <Text style={styles.sectionTitle}>About Me</Text>
-            <Text style={styles.field}><Text style={styles.label}>Name:</Text> {cv.name}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Email:</Text> {cv.email}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Phone:</Text> {cv.phone}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Address:</Text> {cv.address}</Text>
-            <Text style={styles.field}><Text style={styles.label}>Summary:</Text> {cv.summary}</Text>
-            <Text style={styles.sectionTitle}>Experience</Text>
-            {cv.experience.map((exp: any, i: number) => (
-              <View key={i} style={styles.subBlock}>
-                <Text style={styles.field}><Text style={styles.label}>Job:</Text> {exp.jobTitle} at {exp.company}</Text>
-                <Text style={styles.field}><Text style={styles.label}>Period:</Text> {exp.startDate} - {exp.endDate}</Text>
-                <Text style={styles.field}><Text style={styles.label}>Description:</Text> {exp.description}</Text>
-              </View>
-            ))}
-            <Text style={styles.sectionTitle}>Education</Text>
-            {cv.education.map((edu: any, i: number) => (
-              <View key={i} style={styles.subBlock}>
-                <Text style={styles.field}><Text style={styles.label}>School:</Text> {edu.school}</Text>
-                <Text style={styles.field}><Text style={styles.label}>Degree:</Text> {edu.degree}</Text>
-                <Text style={styles.field}><Text style={styles.label}>Period:</Text> {edu.startDate} - {edu.endDate}</Text>
-                <Text style={styles.field}><Text style={styles.label}>Description:</Text> {edu.description}</Text>
-              </View>
-            ))}
-            <Text style={styles.sectionTitle}>Skills</Text>
-            <Text style={styles.field}>{cv.skills.join(', ')}</Text>
-            {!isWizard && (
-              <View style={styles.buttonRow}>
-                <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
-                  <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
-                </View>
-                <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
-                  <Button
-                    title="Next: Choose Template"
-                    onPress={() => setShowTemplates(true)}
-                    color={isDark ? '#4F8EF7' : '#1976D2'}
-                  />
-                </View>
-              </View>
-            )}
-          </ScrollView>
-        ) : (
-          <>
-            <Text style={styles.title}>Choose a CV Template</Text>
-            <FlatList
-              data={TEMPLATES}
-              renderItem={renderTemplate}
-              keyExtractor={item => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.templatesList}
-            />
+      {!showTemplates ? (
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <Text style={styles.title}>Review Your CV</Text>
+          <Text style={styles.sectionTitle}>About Me</Text>
+          <Text style={styles.field}><Text style={styles.label}>Name:</Text> {cv.name}</Text>
+          <Text style={styles.field}><Text style={styles.label}>Email:</Text> {cv.email}</Text>
+          <Text style={styles.field}><Text style={styles.label}>Phone:</Text> {cv.phone}</Text>
+          <Text style={styles.field}><Text style={styles.label}>Address:</Text> {cv.address}</Text>
+          <Text style={styles.field}><Text style={styles.label}>Summary:</Text> {cv.summary}</Text>
+          <Text style={styles.sectionTitle}>Experience</Text>
+          {cv.experience.map((exp: any, i: number) => (
+            <View key={i} style={styles.subBlock}>
+              <Text style={styles.field}><Text style={styles.label}>Job:</Text> {exp.jobTitle} at {exp.company}</Text>
+              <Text style={styles.field}><Text style={styles.label}>Period:</Text> {exp.startDate} - {exp.endDate}</Text>
+              <Text style={styles.field}><Text style={styles.label}>Description:</Text> {exp.description}</Text>
+            </View>
+          ))}
+          <Text style={styles.sectionTitle}>Education</Text>
+          {cv.education.map((edu: any, i: number) => (
+            <View key={i} style={styles.subBlock}>
+              <Text style={styles.field}><Text style={styles.label}>School:</Text> {edu.school}</Text>
+              <Text style={styles.field}><Text style={styles.label}>Degree:</Text> {edu.degree}</Text>
+              <Text style={styles.field}><Text style={styles.label}>Period:</Text> {edu.startDate} - {edu.endDate}</Text>
+              <Text style={styles.field}><Text style={styles.label}>Description:</Text> {edu.description}</Text>
+            </View>
+          ))}
+          <Text style={styles.sectionTitle}>Skills</Text>
+          <Text style={styles.field}>{cv.skills.join(', ')}</Text>
+          {!isWizard && (
             <View style={styles.buttonRow}>
               <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
-                <Button title="Back" onPress={() => setShowTemplates(false)} color={isDark ? '#888' : '#ccc'} />
+                <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
               </View>
               <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
                 <Button
-                  title="Generate PDF"
-                  onPress={handleGeneratePDF}
+                  title="Next: Choose Template"
+                  onPress={() => setShowTemplates(true)}
                   color={isDark ? '#4F8EF7' : '#1976D2'}
-                  disabled={!selectedTemplate}
                 />
               </View>
             </View>
-          </>
-        )}
-      </View>
+          )}
+        </ScrollView>
+      ) : (
+        <>
+          <Text style={styles.title}>Choose a CV Template</Text>
+          <FlatList
+            data={TEMPLATES}
+            renderItem={renderTemplate}
+            keyExtractor={item => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.templatesList}
+          />
+          <View style={styles.buttonRow}>
+            <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+              <Button title="Back" onPress={() => setShowTemplates(false)} color={isDark ? '#888' : '#ccc'} />
+            </View>
+            <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+              <Button
+                title="Generate PDF"
+                onPress={handleGeneratePDF}
+                color={isDark ? '#4F8EF7' : '#1976D2'}
+                disabled={!selectedTemplate}
+              />
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -147,22 +145,9 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: isDark ? '#181A20' : '#f2f4f8',
-  },
-  card: {
-    backgroundColor: isDark ? '#23262F' : '#fff',
-    borderRadius: 16,
-    padding: 32,
-    shadowColor: isDark ? '#000' : '#aaa',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    marginVertical: 32,
-    width: '100%',
-    maxWidth: 480,
-    minHeight: 420,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    backgroundColor: 'transparent',
   },
   title: {
     fontSize: 28,

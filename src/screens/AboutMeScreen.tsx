@@ -122,7 +122,7 @@ const AboutMeScreen: React.FC<Props> = ({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.card}>{content}</View>
+      <View style={styles.container}>{content}</View>
     </ScrollView>
   );
 };
@@ -130,23 +130,11 @@ const AboutMeScreen: React.FC<Props> = ({
 const getStyles = (isDark: boolean, isWizard: boolean) =>
   StyleSheet.create({
     container: {
-      flexGrow: 1,
-      backgroundColor: isDark ? '#181A20' : '#F2F4F8',
+      flex: 1,
+      backgroundColor: 'transparent',
       padding: isWizard ? 0 : 24,
       justifyContent: isWizard ? 'flex-start' : 'center',
       alignItems: isWizard ? 'stretch' : 'center',
-    },
-    card: {
-      backgroundColor: isDark ? '#23262F' : '#FFF',
-      borderRadius: 16,
-      padding: 24,
-      width: '100%',
-      maxWidth: 480,
-      shadowColor: isDark ? '#000' : '#AAA',
-      shadowOpacity: 0.15,
-      shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 12,
-      elevation: 6,
     },
     title: {
       fontSize: 28,
