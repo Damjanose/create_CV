@@ -7,6 +7,8 @@ import {
   StyleSheet,
   useColorScheme,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 
 import AboutMeScreen from '../screens/AboutMeScreen';
@@ -15,7 +17,7 @@ import EducationScreen from '../screens/EducationScreen';
 import SkillsScreen from '../screens/SkillsScreen';
 import ReviewGenerateScreen from '../screens/ReviewGenerateScreen';
 
-const steps = ['About Me', 'Experience', 'Education', 'Skills', 'Review'];
+const steps = [0, 1, 2, 3, 4]; // Just numbers for stepper
 
 const WizardForm = () => {
   const [step, setStep] = useState(0);
@@ -32,15 +34,34 @@ const WizardForm = () => {
   const [errors, setErrors] = useState<any>({});
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Validation per step (simplified—copy your real logic)
+  // Validation per step
   const validateStep = () => {
-    // for brevity, assume always valid
     setErrorMsg('');
+    let valid = true;
+    let newErrors: any = {};
+    if (step === 0) {
+      // About Me required fields
+      const required = ['name', 'email', 'phone', 'address', 'summary'];
+      required.forEach((field) => {
+        if (!aboutMe[field] || aboutMe[field].trim() === '') {
+          newErrors[field] = true;
+          valid = false;
+        }
+      });
+      setErrors(newErrors);
+      if (!valid) setErrorMsg('Please fill all required fields.');
+      return valid;
+    }
+    // TODO: Add validation for other steps
     return true;
   };
 
   const canGoNext = () => {
-    // for brevity, always enable
+    if (step === 0) {
+      const required = ['name', 'email', 'phone', 'address', 'summary'];
+      return required.every((field) => aboutMe[field] && aboutMe[field].trim() !== '');
+    }
+    // TODO: Add canGoNext logic for other steps
     return true;
   };
 
@@ -133,112 +154,104 @@ const WizardForm = () => {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
     >
-      {/* Stepper */}
-      <View style={styles.stepperContainer}>
-        {steps.map((label, idx) => {
-          const done = idx < step;
-          const current = idx === step;
-          return (
-            <View key={label} style={styles.stepWrapper}>
-              <View
-                style={[
-                  styles.circle,
-                  current && styles.circleCurrent,
-                  done && styles.circleDone,
-                ]}
-              >
-                <Text style={styles.circleText}>{idx + 1}</Text>
-              </View>
-              <Text
-                style={[
-                  styles.stepLabel,
-                  current && styles.stepLabelCurrent,
-                ]}
-                numberOfLines={1}
-              >
-                {label}
-              </Text>
-              {idx < steps.length - 1 && (
-                <View
-                  style={[
-                    styles.line,
-                    done && styles.lineDone,
-                  ]}
-                />
-              )}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Card */}
+        <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
+          {errorMsg ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
-          );
-        })}
-      </View>
+          ) : null}
 
-      {/* Card */}
-      <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-        <Text style={styles.title}>
-          {`Step ${step + 1} of ${steps.length}: ${steps[step]}`}
-        </Text>
+          <View style={styles.content}>{renderStepContent()}</View>
 
-        {errorMsg ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{errorMsg}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.content}>{renderStepContent()}</View>
-
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.buttonSecondary,
-              step === 0 && styles.buttonDisabled,
-            ]}
-            onPress={handleBack}
-            disabled={step === 0}
-          >
-            <Text
-              style={[
-                styles.buttonText,
-                styles.textSecondary,
-                step === 0 && styles.textDisabled,
-              ]}
-            >
-              Back
-            </Text>
-          </TouchableOpacity>
-
-          {step < steps.length - 1 ? (
+          <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[
                 styles.button,
-                canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                styles.buttonSecondary,
+                step === 0 && styles.buttonDisabled,
               ]}
-              onPress={handleNext}
-              disabled={!canGoNext()}
+              onPress={handleBack}
+              disabled={step === 0}
             >
               <Text
                 style={[
                   styles.buttonText,
-                  !canGoNext() && styles.textDisabled,
+                  styles.textSecondary,
+                  step === 0 && styles.textDisabled,
                 ]}
               >
-                Next
+                Back
               </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.button, styles.buttonPrimary]}
-              onPress={() => {/* finalize */}}
-            >
-              <Text style={styles.buttonText}>Finish</Text>
-            </TouchableOpacity>
-          )}
+
+            {step < steps.length - 1 ? (
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                ]}
+                onPress={handleNext}
+                disabled={!canGoNext()}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    !canGoNext() && styles.textDisabled,
+                  ]}
+                >
+                  Next
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.button, styles.buttonPrimary]}
+                onPress={() => {/* finalize */}}
+              >
+                <Text style={styles.buttonText}>Finish</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+        {/* Stepper at the bottom, numbers only */}
+        <View style={styles.stepperContainerBottom}>
+          {steps.map((idx) => {
+            const done = idx < step;
+            const current = idx === step;
+            return (
+              <React.Fragment key={idx}>
+                <View
+                  style={[
+                    styles.circle,
+                    current && styles.circleCurrent,
+                    done && styles.circleDone,
+                  ]}
+                >
+                  <Text style={styles.circleText}>{idx + 1}</Text>
+                </View>
+                {idx < steps.length - 1 && (
+                  <View
+                    style={[
+                      styles.line,
+                      done && styles.lineDone,
+                    ]}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
         </View>
-      </Animated.View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -256,11 +269,15 @@ const getStyles = (isDark: boolean) => {
       paddingVertical: 24,
     },
     stepperContainer: {
+      display: 'none', // Hide the old stepper
+    },
+    stepperContainerBottom: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 16,
+      marginTop: 24,
       width: '90%',
       maxWidth: 400,
+      justifyContent: 'center',
     },
     stepWrapper: {
       flexDirection: 'row',
