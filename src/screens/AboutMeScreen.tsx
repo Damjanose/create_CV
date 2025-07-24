@@ -1,111 +1,203 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, useColorScheme } from 'react-native';
+import React, { useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  useColorScheme,
+  BackHandler,
+  TouchableOpacity,
+} from 'react-native';
 
-const AboutMeScreen = ({ navigation }: any) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [summary, setSummary] = useState('');
+type Props = {
+  navigation?: any;
+  data?: any;
+  setData?: any;
+  errors?: any;
+  setErrors?: any;
+  errorMsg?: string;
+  setErrorMsg?: any;
+  isWizard?: boolean;
+};
+
+const AboutMeScreen: React.FC<Props> = ({
+  navigation,
+  data,
+  setData,
+  errors,
+  setErrors,
+  errorMsg,
+  setErrorMsg,
+  isWizard = false,
+}) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const styles = getStyles(isDark);
+  const styles = getStyles(isDark, isWizard);
 
-  const handleNext = () => {
-    // TODO: Save data to context or state management
-    navigation.navigate('Experience');
+  // block back only when standalone
+  useEffect(() => {
+    if (!isWizard) {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => sub.remove();
+    }
+  }, [isWizard]);
+
+  // disable swipe‑back gesture
+  useEffect(() => {
+    if (!isWizard && navigation?.setOptions) {
+      navigation.setOptions({ gestureEnabled: false });
+    }
+  }, [navigation, isWizard]);
+
+  // choose between wizard state vs. local
+  const state = isWizard ? data! : data! /* or your local state logic */;
+  const setState = isWizard ? setData! : setData!;
+  const fieldErrors = isWizard ? errors! : errors!;
+  const setFieldErrors = isWizard ? setErrors! : setErrors!;
+  const msg = isWizard ? errorMsg! : errorMsg!;
+  const setMsg = isWizard ? setErrorMsg! : setErrorMsg!;
+
+  const handleChange = (key: string, val: string) => {
+    setState((prev: any) => ({ ...prev, [key]: val }));
+    setFieldErrors((e: any) => ({ ...e, [key]: false }));
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.card}>
-        <Text style={styles.title}>About Me</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone Number"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Address"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
-          value={address}
-          onChangeText={setAddress}
-        />
-        <TextInput
-          style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-          placeholder="Short Summary/About Me"
-          placeholderTextColor={isDark ? '#aaa' : '#888'}
-          value={summary}
-          onChangeText={setSummary}
-          multiline
-        />
-        <View style={styles.buttonWrapper}>
-          <Button title="Next: Experience" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
+  const fields = [
+    { key: 'name', label: 'Full Name *', multiline: false, keyboard: 'default' },
+    { key: 'email', label: 'Email *', multiline: false, keyboard: 'email-address' },
+    { key: 'phone', label: 'Phone Number *', multiline: false, keyboard: 'phone-pad' },
+    { key: 'address', label: 'Address *', multiline: false, keyboard: 'default' },
+    {
+      key: 'summary',
+      label: 'Short Summary/About Me *',
+      multiline: true,
+      keyboard: 'default',
+      height: 100,
+    },
+  ];
+
+  const content = (
+    <>
+      <Text style={styles.title}>About Me</Text>
+      {!!msg && <Text style={styles.errorMsg}>{msg}</Text>}
+
+      {fields.map(({ key, label, multiline, keyboard, height }) => (
+        <View key={key} style={styles.field}>
+          <Text style={styles.label}>{label}</Text>
+          <TextInput
+            value={state[key]}
+            onChangeText={(v) => handleChange(key, v)}
+            placeholder={label}
+            placeholderTextColor={isDark ? '#888' : '#AAA'}
+            multiline={multiline}
+            keyboardType={keyboard as any}
+            textAlignVertical={multiline ? 'top' : 'center'}
+            style={[
+              styles.input,
+              multiline && { height },
+              fieldErrors[key] && styles.inputError,
+            ]}
+          />
         </View>
-      </View>
+      ))}
+
+      {!isWizard && (
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={[styles.btn, styles.btnSecondary]} disabled>
+            <Text style={[styles.btnText, styles.textSecondary]}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, styles.btnPrimary]}>
+            <Text style={styles.btnText}>Next: Experience</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
+  );
+
+  return isWizard ? (
+    <View style={styles.container}>{content}</View>
+  ) : (
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.container}>{content}</View>
     </ScrollView>
   );
 };
 
-const getStyles = (isDark: boolean) => StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    backgroundColor: isDark ? '#181A20' : '#f2f4f8',
-    justifyContent: 'center',
-  },
-  card: {
-    backgroundColor: isDark ? '#23262F' : '#fff',
-    borderRadius: 16,
-    padding: 28,
-    shadowColor: isDark ? '#000' : '#aaa',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    marginVertical: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    textAlign: 'center',
-    color: isDark ? '#fff' : '#222',
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: isDark ? '#333' : '#d1d5db',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-    fontSize: 17,
-    backgroundColor: isDark ? '#181A20' : '#f7f9fa',
-    color: isDark ? '#fff' : '#222',
-  },
-  buttonWrapper: {
-    marginTop: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-});
+const getStyles = (isDark: boolean, isWizard: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      padding: isWizard ? 0 : 24,
+      justifyContent: isWizard ? 'flex-start' : 'center',
+      alignItems: isWizard ? 'stretch' : 'center',
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: isDark ? '#FFF' : '#222',
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    errorMsg: {
+      color: '#E53935',
+      marginBottom: 12,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+    field: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      marginBottom: 6,
+      color: isDark ? '#DDD' : '#555',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: isDark ? '#333' : '#CCC',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      backgroundColor: isDark ? '#1E1F24' : '#FFF',
+      color: isDark ? '#FFF' : '#222',
+    },
+    inputError: {
+      borderColor: '#E53935',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 24,
+    },
+    btn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginHorizontal: 4,
+    },
+    btnPrimary: {
+      backgroundColor: isDark ? '#4F8EF7' : '#1976D2',
+    },
+    btnSecondary: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: isDark ? '#888' : '#CCC',
+    },
+    btnText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFF',
+    },
+    textSecondary: {
+      color: isDark ? '#888' : '#555',
+    },
+  });
 
-export default AboutMeScreen; 
+export default AboutMeScreen;

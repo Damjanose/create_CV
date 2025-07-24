@@ -1,63 +1,103 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity, useColorScheme, BackHandler } from 'react-native';
 
-interface Education {
-  school: string;
-  degree: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
-const EducationScreen = ({ navigation }: any) => {
-  const [educations, setEducations] = useState<Education[]>([
+const EducationScreen = ({
+  navigation,
+  data,
+  setData,
+  errors,
+  setErrors,
+  errorMsg,
+  setErrorMsg,
+  isWizard,
+}: any) => {
+  const [local, setLocal] = useState([
     { school: '', degree: '', startDate: '', endDate: '', description: '' },
   ]);
+  const [localErrors, setLocalErrors] = useState({});
+  const [localErrorMsg, setLocalErrorMsg] = useState('');
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
 
-  const handleChange = (index: number, field: keyof Education, value: string) => {
-    const updated = [...educations];
+  useEffect(() => {
+    if (!isWizard) {
+      // Block hardware back
+      const handler = () => true;
+      const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+      return () => subscription.remove();
+    }
+  }, [isWizard]);
+
+  useEffect(() => {
+    if (!isWizard && navigation?.setOptions) {
+      navigation.setOptions({ gestureEnabled: false });
+    }
+  }, [navigation, isWizard]);
+
+  const state = isWizard ? data || local : local;
+  const setState = isWizard && setData ? setData : setLocal;
+  const errState = isWizard ? errors || localErrors : localErrors;
+  const setErrState = isWizard && setErrors ? setErrors : setLocalErrors;
+  const errMsg = isWizard ? errorMsg || localErrorMsg : localErrorMsg;
+  const setErrMsg = isWizard && setErrorMsg ? setErrorMsg : setLocalErrorMsg;
+
+  const handleChange = (index: number, field: string, value: string) => {
+    const updated = [...state];
     updated[index][field] = value;
-    setEducations(updated);
+    setState(updated);
+    setErrState((e: any) => ({ ...e, [index]: { ...e[index], [field]: false } }));
   };
 
   const addEducation = () => {
-    setEducations([
-      ...educations,
+    setState([
+      ...state,
       { school: '', degree: '', startDate: '', endDate: '', description: '' },
     ]);
   };
 
+  const allFilled = state.every((edu: any) => edu.school?.trim() && edu.degree?.trim() && edu.startDate?.trim());
+
   const handleNext = () => {
-    // TODO: Save data to context or state management
-    navigation.navigate('Skills');
+    let valid = true;
+    const newErrors: any = {};
+    state.forEach((edu: any, idx: number) => {
+      const entryErr: any = {};
+      if (!edu.school?.trim()) { entryErr.school = true; valid = false; }
+      if (!edu.degree?.trim()) { entryErr.degree = true; valid = false; }
+      if (!edu.startDate?.trim()) { entryErr.startDate = true; valid = false; }
+      if (Object.keys(entryErr).length > 0) newErrors[idx] = entryErr;
+    });
+    setErrState(newErrors);
+    if (!valid) setErrMsg('Please fill in all required fields for each education entry.');
+    else setErrMsg('');
+    if (valid && !isWizard && navigation) navigation.navigate('Skills');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.title}>Education</Text>
-        {educations.map((edu, idx) => (
+        {errMsg ? <Text style={styles.errorMsg}>{errMsg}</Text> : null}
+        {state.map((edu: any, idx: number) => (
           <View key={idx} style={styles.eduBlock}>
             <TextInput
-              style={styles.input}
-              placeholder="School"
+              style={[styles.input, errState[idx]?.school && styles.inputError]}
+              placeholder="School *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.school}
               onChangeText={v => handleChange(idx, 'school', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Degree"
+              style={[styles.input, errState[idx]?.degree && styles.inputError]}
+              placeholder="Degree *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.degree}
               onChangeText={v => handleChange(idx, 'degree', v)}
             />
             <TextInput
-              style={styles.input}
-              placeholder="Start Date"
+              style={[styles.input, errState[idx]?.startDate && styles.inputError]}
+              placeholder="Start Date *"
               placeholderTextColor={isDark ? '#aaa' : '#888'}
               value={edu.startDate}
               onChangeText={v => handleChange(idx, 'startDate', v)}
@@ -82,9 +122,16 @@ const EducationScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={addEducation} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+ Add Education</Text>
         </TouchableOpacity>
-        <View style={styles.buttonWrapper}>
-          <Button title="Next: Skills" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} />
-        </View>
+        {!isWizard && (
+          <View style={styles.buttonRow}>
+            <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+              <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
+            </View>
+            <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+              <Button title="Next: Skills" onPress={handleNext} color={isDark ? '#4F8EF7' : '#1976D2'} disabled={!allFilled} />
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -133,6 +180,15 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     backgroundColor: isDark ? '#23262F' : '#fff',
     color: isDark ? '#fff' : '#222',
   },
+  inputError: {
+    borderColor: '#e53935',
+  },
+  errorMsg: {
+    color: '#e53935',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   addBtn: {
     marginBottom: 24,
     alignItems: 'center',
@@ -146,6 +202,10 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    marginTop: 12,
   },
 });
 
