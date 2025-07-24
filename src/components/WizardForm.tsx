@@ -16,8 +16,9 @@ import ExperienceScreen from '../screens/ExperienceScreen';
 import EducationScreen from '../screens/EducationScreen';
 import SkillsScreen from '../screens/SkillsScreen';
 import ReviewGenerateScreen from '../screens/ReviewGenerateScreen';
+import TemplateSelectScreen from '../screens/TemplateSelectScreen';
 
-const steps = [0, 1, 2, 3, 4]; // Just numbers for stepper
+const steps = [0, 1, 2, 3, 4, 5]; // Add template selection step
 
 // Type definitions for form data
 interface AboutMe {
@@ -57,6 +58,19 @@ interface EducationErrors {
   [index: number]: Partial<Record<keyof Education, boolean>>;
 }
 
+// Template type and list
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+}
+
+const TEMPLATES: Template[] = [
+  { id: 'classic', name: 'Classic', description: 'A clean, traditional layout.' },
+  { id: 'modern', name: 'Modern', description: 'A stylish, contemporary look.' },
+  { id: 'minimal', name: 'Minimal', description: 'Simple and elegant.' },
+];
+
 const WizardForm = () => {
   const [step, setStep] = useState(0);
   const [fadeAnim] = useState(() => new Animated.Value(1));
@@ -78,6 +92,7 @@ const WizardForm = () => {
   // errors can be AboutMeErrors | ExperienceErrors | EducationErrors
   const [errors, setErrors] = useState<AboutMeErrors | ExperienceErrors | EducationErrors>({});
   const [errorMsg, setErrorMsg] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('classic');
 
   // Validation per step
   const validateStep = () => {
@@ -185,11 +200,16 @@ const WizardForm = () => {
         );
       case 4:
         return (
+          <TemplateSelectScreen selected={selectedTemplate} setSelected={setSelectedTemplate} isWizard />
+        );
+      case 5:
+        return (
           <ReviewGenerateScreen
             aboutMe={aboutMe}
             experience={experience}
             education={education}
             skills={skills}
+            selectedTemplate={selectedTemplate}
             isWizard
           />
         );
@@ -437,6 +457,45 @@ const getStyles = (isDark: boolean) => {
     },
     textDisabled: {
       color: isDark ? '#666' : '#AAA',
+    },
+    templateCard: {
+      width: 140,
+      height: 180,
+      backgroundColor: isDark ? '#181A20' : '#f7f9fa',
+      borderRadius: 12,
+      marginHorizontal: 8,
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+      shadowColor: isDark ? '#000' : '#aaa',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    selectedTemplate: {
+      borderColor: primary,
+      shadowOpacity: 0.18,
+      elevation: 4,
+    },
+    templateName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: isDark ? '#fff' : '#222',
+      marginBottom: 8,
+    },
+    selectedLabel: {
+      color: primary,
+      fontWeight: 'bold',
+      marginTop: 8,
+    },
+    templateDesc: {
+      fontSize: 14,
+      color: isDark ? '#aaa' : '#555',
+      textAlign: 'center',
+      marginBottom: 12,
     },
   });
 };
