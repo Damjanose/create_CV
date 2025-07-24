@@ -716,7 +716,7 @@ const WizardForm = () => {
                 justifyContent: 'flex-start',
                 alignItems: 'stretch',
                 padding: 0,
-                paddingBottom: 80, // leave space for the button
+                paddingBottom: 100, // leave space for the button
               }}
               style={{ flex: 1 }}
             >
@@ -725,16 +725,24 @@ const WizardForm = () => {
             <View
               style={{
                 position: 'absolute',
-                right: 24,
-                bottom: 24,
+                right: 20,
+                bottom: 20,
                 zIndex: 10,
               }}
+              pointerEvents="box-none"
             >
               <TouchableOpacity
                 style={[
                   styles.button,
                   styles.buttonPrimary,
-                  { borderRadius: 32, width: 64, height: 64, justifyContent: 'center', alignItems: 'center', elevation: 6 },
+                  {
+                    borderRadius: 32,
+                    width: 64,
+                    height: 64,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    elevation: 6,
+                  },
                   !selectedTemplate && styles.buttonDisabled,
                 ]}
                 onPress={handleDownloadPDF}

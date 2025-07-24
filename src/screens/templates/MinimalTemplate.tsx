@@ -150,7 +150,7 @@ const MinimalTemplate: React.FC<Props> = ({
 );
 
 // helper for section headings
-const Section: React.FC<{ title: string }> = ({ title, children }) => (
+const Section: React.FC<React.PropsWithChildren<{ title: string }>> = ({ title, children }) => (
   <View style={{ marginBottom: 28 }}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
