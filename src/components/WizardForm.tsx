@@ -35,6 +35,8 @@ interface AboutMe {
   phone: string;
   address: string;
   summary: string;
+  image?: string; // Added for image URI
+  imageBase64?: string; // Added for image base64
 }
 
 interface Experience {
@@ -160,78 +162,159 @@ const WizardForm = () => {
   };
 
   // Helper to render the selected template as HTML
-  const renderTemplateHtml = () => {
+  const renderTemplateHtml = (imageBase64?: string) => {
     let html = '';
+    let imageHtml = '';
+    if (imageBase64) {
+      imageHtml = `<div style='text-align:center;margin-bottom:16px;'><img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;object-fit:cover;background:#eee;'/></div>`;
+    }
     if (selectedTemplate === 'classic') {
       html = `
-        <h1>${aboutMe.name}</h1>
-        <p>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
-        <h2>Summary</h2>
-        <p>${aboutMe.summary}</p>
-        <h2>Experience</h2>
-        ${experience.map(exp => `
-          <div><b>${exp.jobTitle} at ${exp.company}</b><br/>
-          <i>${exp.startDate} - ${exp.endDate}</i><br/>
-          <span>${exp.description}</span></div>
-        `).join('')}
-        <h2>Education</h2>
-        ${education.map(edu => `
-          <div><b>${edu.degree}, ${edu.school}</b><br/>
-          <i>${edu.startDate} - ${edu.endDate}</i><br/>
-          <span>${edu.description}</span></div>
-        `).join('')}
-        <h2>Skills</h2>
-        <p>${skills.join(', ')}</p>
+        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fff;border-radius:12px;border:1px solid #e0e0e0;overflow:hidden;">
+          ${imageHtml}
+          <h1 style="font-size:32px;font-weight:bold;text-align:center;color:#222;margin:12px 0 0 0;">${aboutMe.name}</h1>
+          <div style="display:flex;flex-direction:row;gap:24px;margin-top:24px;">
+            <div style="flex:1;padding-right:12px;">
+              <div style="margin-bottom:20px;">
+                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Contact</div>
+                <div style="font-size:14px;font-weight:600;margin-top:6px;">Email</div>
+                <div style="font-size:14px;color:#555;">${aboutMe.email}</div>
+                <div style="font-size:14px;font-weight:600;margin-top:6px;">Phone</div>
+                <div style="font-size:14px;color:#555;">${aboutMe.phone}</div>
+                <div style="font-size:14px;font-weight:600;margin-top:6px;">Address</div>
+                <div style="font-size:14px;color:#555;">${aboutMe.address}</div>
+              </div>
+              <div style="margin-bottom:20px;">
+                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Skills</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  ${skills.map(skill => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join('')}
+                </div>
+              </div>
+            </div>
+            <div style="flex:2;padding-left:12px;">
+              <div style="margin-bottom:20px;">
+                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Summary</div>
+                <div style="font-size:14px;color:#555;line-height:20px;">${aboutMe.summary}</div>
+              </div>
+              <div style="margin-bottom:20px;">
+                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Experience</div>
+                ${experience.map(exp => `
+                  <div style='margin-bottom:12px;'>
+                    <div style='font-size:16px;font-weight:600;color:#333;'>${exp.jobTitle}</div>
+                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${exp.company} | ${exp.startDate} – ${exp.endDate}</div>
+                    <div style='font-size:14px;color:#555;line-height:20px;'>${exp.description}</div>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="margin-bottom:20px;">
+                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Education</div>
+                ${education.map(edu => `
+                  <div style='margin-bottom:12px;'>
+                    <div style='font-size:16px;font-weight:600;color:#333;'>${edu.degree}</div>
+                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${edu.school} | ${edu.startDate} – ${edu.endDate}</div>
+                    <div style='font-size:14px;color:#555;line-height:20px;'>${edu.description}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
       `;
     } else if (selectedTemplate === 'modern') {
       html = `
-        <div style="color:#1976D2;"><h1>${aboutMe.name}</h1></div>
-        <p>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
-        <h2 style="color:#1976D2;">Summary</h2>
-        <p>${aboutMe.summary}</p>
-        <h2 style="color:#1976D2;">Experience</h2>
-        ${experience.map(exp => `
-          <div><b>${exp.jobTitle} <span style='color:#1976D2;'>@</span> ${exp.company}</b><br/>
-          <i>${exp.startDate} - ${exp.endDate}</i><br/>
-          <span>${exp.description}</span></div>
-        `).join('')}
-        <h2 style="color:#1976D2;">Education</h2>
-        ${education.map(edu => `
-          <div><b>${edu.degree}, ${edu.school}</b><br/>
-          <i>${edu.startDate} - ${edu.endDate}</i><br/>
-          <span>${edu.description}</span></div>
-        `).join('')}
-        <h2 style="color:#1976D2;">Skills</h2>
-        <p>${skills.map(skill => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:4px;'>${skill}</span>`).join('')}</p>
+        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#f7f9fa;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;display:flex;flex-direction:row;">
+          <div style="width:16px;background:#1976D2;"></div>
+          <div style="flex:1;padding:24px;">
+            ${imageHtml}
+            <div style='font-size:30px;font-weight:bold;color:#1976D2;margin-bottom:4px;text-align:center;'>${aboutMe.name}</div>
+            <div style='font-size:14px;color:#555;margin-bottom:18px;text-align:center;'>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</div>
+            <div style="margin-bottom:18px;">
+              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Summary</div>
+              <div style="font-size:14px;color:#222;line-height:20px;">${aboutMe.summary}</div>
+            </div>
+            <div style="margin-bottom:18px;">
+              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Experience</div>
+              ${experience.map(exp => `
+                <div style='margin-bottom:10px;'>
+                  <div style='font-size:15px;font-weight:600;color:#333;'>${exp.jobTitle} <span style='color:#1976D2;font-weight:bold;'>@</span> ${exp.company}</div>
+                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${exp.startDate} - ${exp.endDate}</div>
+                  <div style='font-size:14px;color:#222;'>${exp.description}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="margin-bottom:18px;">
+              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Education</div>
+              ${education.map(edu => `
+                <div style='margin-bottom:10px;'>
+                  <div style='font-size:15px;font-weight:600;color:#333;'>${edu.degree}, ${edu.school}</div>
+                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${edu.startDate} - ${edu.endDate}</div>
+                  <div style='font-size:14px;color:#222;'>${edu.description}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="margin-bottom:18px;">
+              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Skills</div>
+              <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
+                ${skills.map(skill => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
       `;
     } else {
       html = `
-        <div style="color:#444;"><h1>${aboutMe.name}</h1></div>
-        <p style="color:#888;">${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
-        <h2 style="color:#b0b0b0;">Summary</h2>
-        <p>${aboutMe.summary}</p>
-        <h2 style="color:#b0b0b0;">Experience</h2>
-        ${experience.map(exp => `
-          <div><b>${exp.jobTitle} at ${exp.company}</b><br/>
-          <i>${exp.startDate} - ${exp.endDate}</i><br/>
-          <span>${exp.description}</span></div>
-        `).join('')}
-        <h2 style="color:#b0b0b0;">Education</h2>
-        ${education.map(edu => `
-          <div><b>${edu.degree}, ${edu.school}</b><br/>
-          <i>${edu.startDate} - ${edu.endDate}</i><br/>
-          <span>${edu.description}</span></div>
-        `).join('')}
-        <h2 style="color:#b0b0b0;">Skills</h2>
-        <p>${skills.join(', ')}</p>
+        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fafbfc;border-radius:16px;border:1px solid #f0f0f0;padding:32px;">
+          ${imageHtml}
+          <div style='font-size:26px;font-weight:600;margin-bottom:6px;color:#444;letter-spacing:0.5px;text-align:center;'>${aboutMe.name}</div>
+          <div style='font-size:13px;color:#888;margin-bottom:24px;text-align:center;'>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</div>
+          <div style="margin-bottom:28px;">
+            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Summary</div>
+            <div style="font-size:13px;color:#666;line-height:20px;">${aboutMe.summary}</div>
+          </div>
+          <div style="margin-bottom:28px;">
+            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Experience</div>
+            ${experience.map(exp => `
+              <div style='margin-bottom:12px;'>
+                <div style='font-size:14px;font-weight:500;color:#555;'>${exp.jobTitle} at ${exp.company}</div>
+                <div style='font-size:12px;color:#bbb;margin-bottom:2px;'>${exp.startDate} - ${exp.endDate}</div>
+                <div style='font-size:13px;color:#666;line-height:20px;'>${exp.description}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-bottom:28px;">
+            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Education</div>
+            ${education.map(edu => `
+              <div style='margin-bottom:12px;'>
+                <div style='font-size:14px;font-weight:500;color:#555;'>${edu.degree}, ${edu.school}</div>
+                <div style='font-size:12px;color:#bbb;margin-bottom:2px;'>${edu.startDate} - ${edu.endDate}</div>
+                <div style='font-size:13px;color:#666;line-height:20px;'>${edu.description}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-bottom:28px;">
+            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Skills</div>
+            <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
+              ${skills.map(skill => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join('')}
+            </div>
+          </div>
+        </div>
       `;
     }
-    return `<html><body style='font-family:sans-serif;padding:24px;'>${html}</body></html>`;
+    return `<html><body style='font-family:sans-serif;padding:24px;background:#f2f4f8;'>${html}</body></html>`;
   };
 
   const handleDownloadPDF = async () => {
+    let imageBase64 = aboutMe.imageBase64;
+    // If imageBase64 is not present but image URI is, try to convert it
+    if (!imageBase64 && aboutMe.image) {
+      try {
+        imageBase64 = await RNFS.readFile(aboutMe.image, 'base64');
+      } catch (e) {
+        // ignore, fallback to no image
+      }
+    }
     try {
-      const html = renderTemplateHtml();
+      const html = renderTemplateHtml(imageBase64);
       const safeName = (aboutMe.name || 'CV').replace(/\s+/g, '_');
       const file = await RNHTMLtoPDF.convert({
         html,
@@ -308,7 +391,8 @@ const WizardForm = () => {
         let TemplateComponent;
         if (selectedTemplate === 'classic') TemplateComponent = ClassicTemplate;
         else if (selectedTemplate === 'modern') TemplateComponent = ModernTemplate;
-        else TemplateComponent = MinimalTemplate;
+        else if (selectedTemplate === 'minimal') TemplateComponent = MinimalTemplate;
+        else TemplateComponent = ClassicTemplate; // fallback
         return (
           <View style={{ alignItems: 'center', width: '100%' }}>
             <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Preview</Text>
@@ -319,8 +403,9 @@ const WizardForm = () => {
               skills={skills}
             />
             <TouchableOpacity
-              style={[styles.button, styles.buttonPrimary, { marginTop: 24 }]}
+              style={[styles.button, styles.buttonPrimary, { marginTop: 24 }, !selectedTemplate && styles.buttonDisabled]}
               onPress={handleDownloadPDF}
+              disabled={!selectedTemplate}
             >
               <Text style={styles.buttonText}>Confirm & Download</Text>
             </TouchableOpacity>
@@ -392,8 +477,9 @@ const WizardForm = () => {
               </TouchableOpacity>
             ) : step === steps.length - 2 ? (
               <TouchableOpacity
-                style={[styles.button, styles.buttonPrimary]}
+                style={[styles.button, styles.buttonPrimary, !selectedTemplate && styles.buttonDisabled]}
                 onPress={handleNext}
+                disabled={!selectedTemplate}
               >
                 <Text style={styles.buttonText}>Preview</Text>
               </TouchableOpacity>

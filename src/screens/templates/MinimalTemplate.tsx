@@ -8,6 +8,7 @@ interface AboutMe {
   address: string;
   summary: string;
   image?: string;
+  imageBase64?: string;
 }
 interface Experience {
   jobTitle: string;
@@ -31,12 +32,22 @@ interface Props {
   skills: string[];
 }
 
+const getImageSource = (aboutMe: AboutMe) => {
+  if (aboutMe.imageBase64) {
+    return { uri: `data:image/jpeg;base64,${aboutMe.imageBase64}` };
+  } else if (aboutMe.image) {
+    return { uri: aboutMe.image };
+  } else {
+    return require('../../assets/images/user.png');
+  }
+};
+
 const MinimalTemplate: React.FC<Props> = ({ aboutMe, experience, education, skills }) => {
   return (
     <View style={styles.container}>
       <View style={{ alignItems: 'center', marginBottom: 12 }}>
         <Image
-          source={aboutMe.image ? { uri: aboutMe.image } : require('../../assets/images/user.png')}
+          source={getImageSource(aboutMe)}
           style={styles.profileImage}
         />
       </View>

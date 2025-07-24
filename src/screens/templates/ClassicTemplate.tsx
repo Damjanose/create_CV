@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 
 interface AboutMe {
   name: string;
@@ -8,6 +8,7 @@ interface AboutMe {
   address: string;
   summary: string;
   image?: string; // Added image property
+  imageBase64?: string; // Added imageBase64 property
 }
 interface Experience {
   jobTitle: string;
@@ -31,16 +32,27 @@ interface Props {
   skills: string[];
 }
 
+const getImageSource = (aboutMe: AboutMe) => {
+  if (aboutMe.imageBase64) {
+    return { uri: `data:image/jpeg;base64,${aboutMe.imageBase64}` };
+  } else if (aboutMe.image) {
+    return { uri: aboutMe.image };
+  } else {
+    return require('../../assets/images/user.png');
+  }
+};
+
 const ClassicTemplate: React.FC<Props> = ({ aboutMe, experience, education, skills }) => {
   return (
-    <View style={styles.container}>
-      <View style={{ alignItems: 'center', marginBottom: 12 }}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
         <Image
-          source={aboutMe.image ? { uri: aboutMe.image } : require('../../assets/images/user.png')}
+          source={getImageSource(aboutMe)}
           style={styles.profileImage}
         />
+        <Text style={styles.name}>{aboutMe.name}</Text>
       </View>
-      <Text style={styles.name}>{aboutMe.name}</Text>
       <Text style={styles.contact}>{aboutMe.email} | {aboutMe.phone} | {aboutMe.address}</Text>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Summary</Text>
@@ -70,17 +82,31 @@ const ClassicTemplate: React.FC<Props> = ({ aboutMe, experience, education, skil
         <Text style={styles.sectionTitle}>Skills</Text>
         <Text style={styles.text}>{skills.join(', ')}</Text>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   container: {
     padding: 24,
     backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#eee',
+    marginBottom: 8,
   },
   name: {
     fontSize: 28,
@@ -121,13 +147,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 14,
     color: '#222',
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#eee',
-    marginBottom: 8,
   },
 });
 
