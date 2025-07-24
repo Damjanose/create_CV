@@ -37,6 +37,7 @@ interface AboutMe {
   summary: string;
   image?: string; // Added for image URI
   imageBase64?: string; // Added for image base64
+  languages?: string[]; // Added for languages
 }
 
 interface Experience {
@@ -114,7 +115,11 @@ const WizardForm = () => {
       // About Me required fields
       const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
       required.forEach((field) => {
-        if (!aboutMe[field] || aboutMe[field].trim() === '') {
+        if (
+          typeof aboutMe[field] !== 'string' ||
+          !aboutMe[field] ||
+          (typeof aboutMe[field] === 'string' && (aboutMe[field] as string).trim() === '')
+        ) {
           newErrors[field] = true;
           valid = false;
         }
@@ -130,7 +135,9 @@ const WizardForm = () => {
   const canGoNext = () => {
     if (step === 0) {
       const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
-      return required.every((field) => aboutMe[field] && aboutMe[field].trim() !== '');
+      return required.every((field) =>
+        typeof aboutMe[field] === 'string' && aboutMe[field] && (aboutMe[field] as string).trim() !== ''
+      );
     }
     // TODO: Add canGoNext logic for other steps
     return true;
@@ -262,39 +269,56 @@ const WizardForm = () => {
         </div>
       `;
     } else {
+      // Minimal template: match MinimalTemplate.tsx design
       html = `
-        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fafbfc;border-radius:16px;border:1px solid #f0f0f0;padding:32px;">
-          ${imageHtml}
-          <div style='font-size:26px;font-weight:600;margin-bottom:6px;color:#444;letter-spacing:0.5px;text-align:center;'>${aboutMe.name}</div>
-          <div style='font-size:13px;color:#888;margin-bottom:24px;text-align:center;'>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</div>
-          <div style="margin-bottom:28px;">
-            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Summary</div>
-            <div style="font-size:13px;color:#666;line-height:20px;">${aboutMe.summary}</div>
+        <div style="max-width:900px;margin:auto;font-family:sans-serif;background:#FFF;border-radius:16px;border:1px solid #f0f0f0;overflow:hidden;">
+          <!-- Header -->
+          <div style='display:flex;flex-direction:row;align-items:center;background:#3DF8C8;padding:24px;'>
+            <div style='width:100px;height:100px;margin-right:24px;'>
+              ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;background:#EEE;'/>` : ''}
+            </div>
+            <div style='flex:1;'>
+              <div style='font-size:26px;font-weight:700;color:#000;'>${aboutMe.name}</div>
+              <div style='font-size:16px;font-weight:500;margin:4px 0;color:#222;'>${aboutMe.summary}</div>
+              <div style='font-size:12px;color:#111;line-height:18px;'>${aboutMe.address}</div>
+              <div style='font-size:12px;color:#111;line-height:18px;'>${aboutMe.phone} | <span style='text-decoration:underline;color:#000;'>${aboutMe.email}</span></div>
+            </div>
           </div>
-          <div style="margin-bottom:28px;">
-            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Experience</div>
-            ${experience.map(exp => `
-              <div style='margin-bottom:12px;'>
-                <div style='font-size:14px;font-weight:500;color:#555;'>${exp.jobTitle} at ${exp.company}</div>
-                <div style='font-size:12px;color:#bbb;margin-bottom:2px;'>${exp.startDate} - ${exp.endDate}</div>
-                <div style='font-size:13px;color:#666;line-height:20px;'>${exp.description}</div>
+          <!-- Body -->
+          <div style='display:flex;flex-direction:row;padding:32px 24px 0 24px;'>
+            <!-- Sidebar -->
+            <div style='width:120px;'>
+              <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;'>Skills</div>
+              ${skills.map(s => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${s}</div>`).join('')}
+              <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;margin-top:24px;'>Languages</div>
+              ${(aboutMe.languages || []).map(l => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l}</div>`).join('')}
+            </div>
+            <!-- Main -->
+            <div style='flex:1;padding-left:32px;'>
+              <div style='margin-bottom:28px;'>
+                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Profile</div>
+                <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${aboutMe.summary}</div>
               </div>
-            `).join('')}
-          </div>
-          <div style="margin-bottom:28px;">
-            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Education</div>
-            ${education.map(edu => `
-              <div style='margin-bottom:12px;'>
-                <div style='font-size:14px;font-weight:500;color:#555;'>${edu.degree}, ${edu.school}</div>
-                <div style='font-size:12px;color:#bbb;margin-bottom:2px;'>${edu.startDate} - ${edu.endDate}</div>
-                <div style='font-size:13px;color:#666;line-height:20px;'>${edu.description}</div>
+              <div style='margin-bottom:28px;'>
+                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Employment History</div>
+                ${experience.map(exp => `
+                  <div style='margin-bottom:16px;'>
+                    <div style='font-size:14px;font-weight:500;color:#444;'>${exp.jobTitle} at ${exp.company}</div>
+                    <div style='font-size:12px;color:#888;margin-bottom:4px;'>${exp.startDate} – ${exp.endDate}</div>
+                    <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${exp.description}</div>
+                  </div>
+                `).join('')}
               </div>
-            `).join('')}
-          </div>
-          <div style="margin-bottom:28px;">
-            <div style="font-size:15px;font-weight:500;color:#b0b0b0;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Skills</div>
-            <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
-              ${skills.map(skill => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join('')}
+              <div style='margin-bottom:28px;'>
+                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Education</div>
+                ${education.map(edu => `
+                  <div style='margin-bottom:16px;'>
+                    <div style='font-size:14px;font-weight:500;color:#444;'>${edu.degree}, ${edu.school}</div>
+                    <div style='font-size:12px;color:#888;margin-bottom:4px;'>${edu.startDate} – ${edu.endDate}</div>
+                    <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${edu.description}</div>
+                  </div>
+                `).join('')}
+              </div>
             </div>
           </div>
         </div>
@@ -389,26 +413,115 @@ const WizardForm = () => {
         );
       case 5:
         let TemplateComponent;
-        if (selectedTemplate === 'classic') TemplateComponent = ClassicTemplate;
-        else if (selectedTemplate === 'modern') TemplateComponent = ModernTemplate;
-        else if (selectedTemplate === 'minimal') TemplateComponent = MinimalTemplate;
-        else TemplateComponent = ClassicTemplate; // fallback
+        let templateProps = {};
+        if (selectedTemplate === 'classic') {
+          TemplateComponent = ClassicTemplate;
+          // Map experience to TimelineEntry[]
+          const timelineExperience = experience.map(exp => ({
+            company: exp.company,
+            location: '',
+            startDate: exp.startDate,
+            endDate: exp.endDate,
+            position: exp.jobTitle,
+            bullets: exp.description ? exp.description.split('\n').filter(Boolean) : [],
+          }));
+          // Map education to EduEntry[]
+          const timelineEducation = education.map(edu => ({
+            institution: edu.school,
+            location: '',
+            year: `${edu.startDate} – ${edu.endDate}`,
+            degree: edu.degree,
+            bullets: edu.description ? edu.description.split('\n').filter(Boolean) : [],
+          }));
+          templateProps = {
+            aboutMeText: aboutMe.summary,
+            imageUri: aboutMe.image,
+            links: [],
+            reference: { name: '', title: '', phone: '', email: '' },
+            hobbies: [],
+            name: aboutMe.name,
+            jobTitle: '',
+            contact: {
+              address: aboutMe.address,
+              phone: aboutMe.phone,
+              email: aboutMe.email,
+            },
+            experience: timelineExperience,
+            education: timelineEducation,
+            skills,
+            languages: [],
+          };
+        } else if (selectedTemplate === 'modern') {
+          TemplateComponent = ModernTemplate;
+          // Map aboutMe
+          const modernAboutMe = {
+            name: aboutMe.name,
+            role: '',
+            summary: aboutMe.summary,
+            email: aboutMe.email,
+            location: aboutMe.address,
+            phone: aboutMe.phone,
+            imageUri: aboutMe.image,
+          };
+          // Map skills
+          const modernSkills = { hard: skills, soft: [] };
+          // Map experience
+          const modernExperience = experience.map(exp => ({
+            period: `${exp.startDate} – ${exp.endDate}`,
+            company: exp.company,
+            role: exp.jobTitle,
+            bullets: exp.description ? exp.description.split('\n').filter(Boolean) : [],
+          }));
+          // Map education
+          const modernEducation = education.map(edu => ({
+            period: `${edu.startDate} – ${edu.endDate}`,
+            location: '',
+            degree: edu.degree,
+            school: edu.school,
+          }));
+          // Map languages (empty for now)
+          const modernLanguages: { label: string; level: number }[] = [];
+          templateProps = {
+            aboutMe: modernAboutMe,
+            skills: modernSkills,
+            experience: modernExperience,
+            education: modernEducation,
+            languages: modernLanguages,
+          };
+        } else if (selectedTemplate === 'minimal') {
+          TemplateComponent = MinimalTemplate;
+          templateProps = { aboutMe, experience, education, skills };
+        } else {
+          TemplateComponent = ClassicTemplate;
+          templateProps = {
+            aboutMeText: '',
+            imageUri: '',
+            links: [],
+            reference: { name: '', title: '', phone: '', email: '' },
+            hobbies: [],
+            name: '',
+            jobTitle: '',
+            contact: { address: '', phone: '', email: '' },
+            experience: [],
+            education: [],
+            skills: [],
+            languages: [],
+          };
+        }
         return (
-          <View style={{ alignItems: 'center', width: '100%' }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Preview</Text>
-            <TemplateComponent
-              aboutMe={aboutMe}
-              experience={experience}
-              education={education}
-              skills={skills}
-            />
-            <TouchableOpacity
-              style={[styles.button, styles.buttonPrimary, { marginTop: 24 }, !selectedTemplate && styles.buttonDisabled]}
-              onPress={handleDownloadPDF}
-              disabled={!selectedTemplate}
-            >
-              <Text style={styles.buttonText}>Confirm & Download</Text>
-            </TouchableOpacity>
+          <View style={{ flex: 1, backgroundColor: '#f2f4f8' }}>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'stretch', padding: 0 }} style={{ flex: 1 }}>
+              <TemplateComponent {...templateProps} />
+            </ScrollView>
+            <View style={{ padding: 16, backgroundColor: '#f2f4f8' }}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonPrimary, { marginTop: 0 }, !selectedTemplate && styles.buttonDisabled]}
+                onPress={handleDownloadPDF}
+                disabled={!selectedTemplate}
+              >
+                <Text style={styles.buttonText}>Confirm & Download</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       default:
