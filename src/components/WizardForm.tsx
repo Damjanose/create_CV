@@ -9,7 +9,11 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
+
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNFS from 'react-native-fs';
 
 import AboutMeScreen from '../screens/AboutMeScreen';
 import ExperienceScreen from '../screens/ExperienceScreen';
@@ -152,6 +156,99 @@ const WizardForm = () => {
   const handleBack = () => {
     setErrorMsg('');
     animateTo(step - 1);
+  };
+
+  // Helper to render the selected template as HTML
+  const renderTemplateHtml = () => {
+    let html = '';
+    if (selectedTemplate === 'classic') {
+      html = `
+        <h1>${aboutMe.name}</h1>
+        <p>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
+        <h2>Summary</h2>
+        <p>${aboutMe.summary}</p>
+        <h2>Experience</h2>
+        ${experience.map(exp => `
+          <div><b>${exp.jobTitle} at ${exp.company}</b><br/>
+          <i>${exp.startDate} - ${exp.endDate}</i><br/>
+          <span>${exp.description}</span></div>
+        `).join('')}
+        <h2>Education</h2>
+        ${education.map(edu => `
+          <div><b>${edu.degree}, ${edu.school}</b><br/>
+          <i>${edu.startDate} - ${edu.endDate}</i><br/>
+          <span>${edu.description}</span></div>
+        `).join('')}
+        <h2>Skills</h2>
+        <p>${skills.join(', ')}</p>
+      `;
+    } else if (selectedTemplate === 'modern') {
+      html = `
+        <div style="color:#1976D2;"><h1>${aboutMe.name}</h1></div>
+        <p>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
+        <h2 style="color:#1976D2;">Summary</h2>
+        <p>${aboutMe.summary}</p>
+        <h2 style="color:#1976D2;">Experience</h2>
+        ${experience.map(exp => `
+          <div><b>${exp.jobTitle} <span style='color:#1976D2;'>@</span> ${exp.company}</b><br/>
+          <i>${exp.startDate} - ${exp.endDate}</i><br/>
+          <span>${exp.description}</span></div>
+        `).join('')}
+        <h2 style="color:#1976D2;">Education</h2>
+        ${education.map(edu => `
+          <div><b>${edu.degree}, ${edu.school}</b><br/>
+          <i>${edu.startDate} - ${edu.endDate}</i><br/>
+          <span>${edu.description}</span></div>
+        `).join('')}
+        <h2 style="color:#1976D2;">Skills</h2>
+        <p>${skills.map(skill => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:4px;'>${skill}</span>`).join('')}</p>
+      `;
+    } else {
+      html = `
+        <div style="color:#444;"><h1>${aboutMe.name}</h1></div>
+        <p style="color:#888;">${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</p>
+        <h2 style="color:#b0b0b0;">Summary</h2>
+        <p>${aboutMe.summary}</p>
+        <h2 style="color:#b0b0b0;">Experience</h2>
+        ${experience.map(exp => `
+          <div><b>${exp.jobTitle} at ${exp.company}</b><br/>
+          <i>${exp.startDate} - ${exp.endDate}</i><br/>
+          <span>${exp.description}</span></div>
+        `).join('')}
+        <h2 style="color:#b0b0b0;">Education</h2>
+        ${education.map(edu => `
+          <div><b>${edu.degree}, ${edu.school}</b><br/>
+          <i>${edu.startDate} - ${edu.endDate}</i><br/>
+          <span>${edu.description}</span></div>
+        `).join('')}
+        <h2 style="color:#b0b0b0;">Skills</h2>
+        <p>${skills.join(', ')}</p>
+      `;
+    }
+    return `<html><body style='font-family:sans-serif;padding:24px;'>${html}</body></html>`;
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const html = renderTemplateHtml();
+      const safeName = (aboutMe.name || 'CV').replace(/\s+/g, '_');
+      const file = await RNHTMLtoPDF.convert({
+        html,
+        fileName: `CV_${safeName}`,
+        directory: 'Documents',
+      });
+      // Optionally move to Download folder (Android)
+      let destPath = file.filePath;
+      if (!destPath) throw new Error('PDF file path not found');
+      if (Platform.OS === 'android') {
+        const downloadDir = `${RNFS.DownloadDirectoryPath}/CV_${safeName}.pdf`;
+        await RNFS.moveFile(destPath, downloadDir);
+        destPath = downloadDir;
+      }
+      Alert.alert('Success', `CV PDF saved to: ${destPath}`);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to generate or save PDF.');
+    }
   };
 
   const renderStepContent = () => {
@@ -297,9 +394,9 @@ const WizardForm = () => {
             ) : (
               <TouchableOpacity
                 style={[styles.button, styles.buttonPrimary]}
-                onPress={() => setShowPreview(true)}
+                onPress={handleDownloadPDF}
               >
-                <Text style={styles.buttonText}>Finish</Text>
+                <Text style={styles.buttonText}>Finish & Download</Text>
               </TouchableOpacity>
             )}
           </View>
