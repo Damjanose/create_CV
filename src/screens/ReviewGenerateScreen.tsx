@@ -9,10 +9,10 @@ const TEMPLATES = [
 
 interface ReviewGenerateScreenProps {
   navigation?: any;
-  aboutMe: any;
-  experience: any;
-  education: any;
-  skills: any;
+  aboutMe?: any;
+  experience?: any;
+  education?: any;
+  skills?: any;
   isWizard?: boolean;
   onBack?: () => void;
   selectedTemplate?: string;
