@@ -36,10 +36,23 @@ interface Education {
 }
 
 interface Props {
+  cvName: string;
   aboutMe: AboutMe;
   experience: Experience[];
   education: Education[];
   skills: string[];
+  contact: {
+    name: string;
+    lastname: string;
+    phone: string;
+    email: string;
+  };
+  address: {
+    countryName: string;
+    cityName: string;
+    address1: string;
+    address2: string;
+  };
 }
 
 const getImageSource = (aboutMe: AboutMe) => {
@@ -53,10 +66,13 @@ const getImageSource = (aboutMe: AboutMe) => {
 };
 
 const MinimalTemplate: React.FC<Props> = ({
+  cvName,
   aboutMe,
   experience,
   education,
   skills,
+  contact,
+  address,
 }) => (
   <ScrollView contentContainerStyle={styles.container}>
     {/* ===== HEADER ===== */}

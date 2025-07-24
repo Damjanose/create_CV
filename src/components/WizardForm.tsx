@@ -10,11 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TextInput,
+  Image,
 } from 'react-native';
 
 // @ts-ignore: No types for react-native-html-to-pdf
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 import AboutMeScreen from '../screens/AboutMeScreen';
 import ExperienceScreen from '../screens/ExperienceScreen';
@@ -26,18 +29,39 @@ import ClassicTemplate from '../screens/templates/ClassicTemplate';
 import ModernTemplate from '../screens/templates/ModernTemplate';
 import MinimalTemplate from '../screens/templates/MinimalTemplate';
 
-const steps = [0, 1, 2, 3, 4, 5]; // 0: AboutMe, 1: Experience, 2: Education, 3: Skills, 4: TemplateSelect, 5: TemplatePreview
+// Use a separate stepLabels array for display, but keep step as a number
+const stepLabels = [
+  'About Me, Contact & Address',
+  'Languages & Skills',
+  'Experience',
+  'Education',
+  'Template',
+  'Preview',
+];
+const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
 
 // Type definitions for form data
-interface AboutMe {
+interface Contact {
   name: string;
-  email: string;
+  lastname: string;
   phone: string;
-  address: string;
+  email: string;
+}
+interface Address {
+  countryName: string;
+  cityName: string;
+  address1: string;
+  address2: string;
+}
+interface Language {
+  name: string;
+  level: number;
+}
+// Remove cvName from AboutMe
+interface AboutMe {
   summary: string;
-  image?: string; // Added for image URI
-  imageBase64?: string; // Added for image base64
-  languages?: string[]; // Added for languages
+  image?: string;
+  imageBase64?: string;
 }
 
 interface Experience {
@@ -91,12 +115,23 @@ const WizardForm = () => {
 
   // Replace these with your real state/hooks
   const [aboutMe, setAboutMe] = useState<AboutMe>({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
     summary: '',
+    image: '',
+    imageBase64: '',
   });
+  const [contact, setContact] = useState<Contact>({
+    name: '',
+    lastname: '',
+    phone: '',
+    email: '',
+  });
+  const [address, setAddress] = useState<Address>({
+    countryName: '',
+    cityName: '',
+    address1: '',
+    address2: '',
+  });
+  const [languages, setLanguages] = useState<Language[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
@@ -112,34 +147,28 @@ const WizardForm = () => {
     let valid = true;
     let newErrors: any = {};
     if (step === 0) {
-      // About Me required fields
-      const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
-      required.forEach((field) => {
-        if (
-          typeof aboutMe[field] !== 'string' ||
-          !aboutMe[field] ||
-          (typeof aboutMe[field] === 'string' && (aboutMe[field] as string).trim() === '')
-        ) {
-          newErrors[field] = true;
-          valid = false;
-        }
-      });
-      setErrors(newErrors);
+      if (!aboutMe.summary || aboutMe.summary.trim() === '') valid = false;
+      if (!contact.name || !contact.lastname || !contact.phone || !contact.email) valid = false;
+      if (!address.countryName || !address.cityName || !address.address1) valid = false;
       if (!valid) setErrorMsg('Please fill all required fields.');
       return valid;
     }
-    // TODO: Add validation for other steps
+    if (step === 1) {
+      if (languages.length === 0 || skills.length === 0) {
+        setErrorMsg('Please add at least one language and one skill.');
+        return false;
+      }
+    }
     return true;
   };
 
   const canGoNext = () => {
     if (step === 0) {
-      const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
-      return required.every((field) =>
-        typeof aboutMe[field] === 'string' && aboutMe[field] && (aboutMe[field] as string).trim() !== ''
-      );
+      return aboutMe.summary.trim() !== '' && contact.name && contact.lastname && contact.phone && contact.email && address.countryName && address.cityName && address.address1;
     }
-    // TODO: Add canGoNext logic for other steps
+    if (step === 1) {
+      return languages.length > 0 && skills.length > 0;
+    }
     return true;
   };
 
@@ -179,17 +208,17 @@ const WizardForm = () => {
       html = `
         <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fff;border-radius:12px;border:1px solid #e0e0e0;overflow:hidden;">
           ${imageHtml}
-          <h1 style="font-size:32px;font-weight:bold;text-align:center;color:#222;margin:12px 0 0 0;">${aboutMe.name}</h1>
+          <h1 style="font-size:32px;font-weight:bold;text-align:center;color:#222;margin:12px 0 0 0;">${contact.name} ${contact.lastname}</h1>
           <div style="display:flex;flex-direction:row;gap:24px;margin-top:24px;">
             <div style="flex:1;padding-right:12px;">
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Contact</div>
                 <div style="font-size:14px;font-weight:600;margin-top:6px;">Email</div>
-                <div style="font-size:14px;color:#555;">${aboutMe.email}</div>
+                <div style="font-size:14px;color:#555;">${contact.email}</div>
                 <div style="font-size:14px;font-weight:600;margin-top:6px;">Phone</div>
-                <div style="font-size:14px;color:#555;">${aboutMe.phone}</div>
+                <div style="font-size:14px;color:#555;">${contact.phone}</div>
                 <div style="font-size:14px;font-weight:600;margin-top:6px;">Address</div>
-                <div style="font-size:14px;color:#555;">${aboutMe.address}</div>
+                <div style="font-size:14px;color:#555;">${address.address1}, ${address.cityName}, ${address.countryName}</div>
               </div>
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Skills</div>
@@ -233,8 +262,8 @@ const WizardForm = () => {
           <div style="width:16px;background:#1976D2;"></div>
           <div style="flex:1;padding:24px;">
             ${imageHtml}
-            <div style='font-size:30px;font-weight:bold;color:#1976D2;margin-bottom:4px;text-align:center;'>${aboutMe.name}</div>
-            <div style='font-size:14px;color:#555;margin-bottom:18px;text-align:center;'>${aboutMe.email} | ${aboutMe.phone} | ${aboutMe.address}</div>
+            <div style='font-size:30px;font-weight:bold;color:#1976D2;margin-bottom:4px;text-align:center;'>${contact.name} ${contact.lastname}</div>
+            <div style='font-size:14px;color:#555;margin-bottom:18px;text-align:center;'>${contact.email} | ${contact.phone} | ${address.address1}, ${address.cityName}, ${address.countryName}</div>
             <div style="margin-bottom:18px;">
               <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Summary</div>
               <div style="font-size:14px;color:#222;line-height:20px;">${aboutMe.summary}</div>
@@ -278,10 +307,10 @@ const WizardForm = () => {
               ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;background:#EEE;'/>` : ''}
             </div>
             <div style='flex:1;'>
-              <div style='font-size:26px;font-weight:700;color:#000;'>${aboutMe.name}</div>
+              <div style='font-size:26px;font-weight:700;color:#000;'>${contact.name} ${contact.lastname}</div>
               <div style='font-size:16px;font-weight:500;margin:4px 0;color:#222;'>${aboutMe.summary}</div>
-              <div style='font-size:12px;color:#111;line-height:18px;'>${aboutMe.address}</div>
-              <div style='font-size:12px;color:#111;line-height:18px;'>${aboutMe.phone} | <span style='text-decoration:underline;color:#000;'>${aboutMe.email}</span></div>
+              <div style='font-size:12px;color:#111;line-height:18px;'>${address.address1}, ${address.cityName}, ${address.countryName}</div>
+              <div style='font-size:12px;color:#111;line-height:18px;'>${contact.phone} | <span style='text-decoration:underline;color:#000;'>${contact.email}</span></div>
             </div>
           </div>
           <!-- Body -->
@@ -291,7 +320,7 @@ const WizardForm = () => {
               <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;'>Skills</div>
               ${skills.map(s => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${s}</div>`).join('')}
               <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;margin-top:24px;'>Languages</div>
-              ${(aboutMe.languages || []).map(l => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l}</div>`).join('')}
+              ${languages.map(l => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l.name} (${l.level})</div>`).join('')}
             </div>
             <!-- Main -->
             <div style='flex:1;padding-left:32px;'>
@@ -339,17 +368,17 @@ const WizardForm = () => {
     }
     try {
       const html = renderTemplateHtml(imageBase64);
-      const safeName = (aboutMe.name || 'CV').replace(/\s+/g, '_');
+      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(/\s+/g, '_');
       const file = await RNHTMLtoPDF.convert({
         html,
-        fileName: `CV_${safeName}`,
+        fileName: safeName,
         directory: 'Documents',
       });
       // Optionally move to Download folder (Android)
       let destPath = file.filePath;
       if (!destPath) throw new Error('PDF file path not found');
       if (Platform.OS === 'android') {
-        const downloadDir = `${RNFS.DownloadDirectoryPath}/CV_${safeName}.pdf`;
+        const downloadDir = `${RNFS.DownloadDirectoryPath}/${safeName}.pdf`;
         await RNFS.moveFile(destPath, downloadDir);
         destPath = downloadDir;
       }
@@ -362,18 +391,184 @@ const WizardForm = () => {
   const renderStepContent = () => {
     switch (step) {
       case 0:
+        // About Me, Contact & Address
         return (
-          <AboutMeScreen
-            data={aboutMe}
-            setData={setAboutMe}
-            errors={errors}
-            setErrors={setErrors}
-            errorMsg={errorMsg}
-            setErrorMsg={setErrorMsg}
-            isWizard
-          />
+          <View style={{ padding: 24 }}>
+            <Text style={styles.title}>About Me, Contact & Address</Text>
+            <View style={{ alignItems: 'center', marginVertical: 16 }}>
+              <Image
+                source={aboutMe.image ? { uri: aboutMe.image } : require('../assets/images/user.png')}
+                style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#eee', marginBottom: 8 }}
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 }}
+                  onPress={async () => {
+                    const response = await launchImageLibrary({ mediaType: 'photo', quality: 0.7 });
+                    if (response.assets && response.assets[0]?.uri) {
+                      const uri = response.assets[0].uri;
+                      let base64 = '';
+                      try { base64 = await RNFS.readFile(uri, 'base64'); } catch {}
+                      setAboutMe(prev => ({ ...prev, image: uri, imageBase64: base64 }));
+                    }
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Upload Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+                  onPress={async () => {
+                    const response = await launchCamera({ mediaType: 'photo', quality: 0.7 });
+                    if (response.assets && response.assets[0]?.uri) {
+                      const uri = response.assets[0].uri;
+                      let base64 = '';
+                      try { base64 = await RNFS.readFile(uri, 'base64'); } catch {}
+                      setAboutMe(prev => ({ ...prev, image: uri, imageBase64: base64 }));
+                    }
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Take Photo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="First Name"
+              value={contact.name}
+              onChangeText={name => setContact(prev => ({ ...prev, name }))}
+            />
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              value={contact.lastname}
+              onChangeText={lastname => setContact(prev => ({ ...prev, lastname }))}
+            />
+            <Text style={styles.label}>Phone</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Phone"
+              value={contact.phone}
+              onChangeText={phone => setContact(prev => ({ ...prev, phone }))}
+              keyboardType="phone-pad"
+            />
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={contact.email}
+              onChangeText={email => setContact(prev => ({ ...prev, email }))}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <Text style={styles.label}>Country</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Country"
+              value={address.countryName}
+              onChangeText={countryName => setAddress(prev => ({ ...prev, countryName }))}
+            />
+            <Text style={styles.label}>City</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="City"
+              value={address.cityName}
+              onChangeText={cityName => setAddress(prev => ({ ...prev, cityName }))}
+            />
+            <Text style={styles.label}>Address Line 1</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Address Line 1"
+              value={address.address1}
+              onChangeText={address1 => setAddress(prev => ({ ...prev, address1 }))}
+            />
+            <Text style={styles.label}>Address Line 2 (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Address Line 2 (optional)"
+              value={address.address2}
+              onChangeText={address2 => setAddress(prev => ({ ...prev, address2 }))}
+            />
+            {/* Move summary to the end */}
+            <Text style={styles.label}>Summary</Text>
+            <TextInput
+              style={[styles.input, { height: 100 }]}
+              placeholder="Write something about yourself..."
+              value={aboutMe.summary}
+              onChangeText={summary => setAboutMe(prev => ({ ...prev, summary }))}
+              multiline
+            />
+          </View>
         );
       case 1:
+        // Languages & Skills
+        return (
+          <View style={{ padding: 24 }}>
+            <Text style={styles.title}>Languages & Skills</Text>
+            <Text style={styles.label}>Languages</Text>
+            {languages.map((lang, idx) => (
+              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <TextInput
+                  style={[styles.input, { flex: 2, marginRight: 8 }]}
+                  placeholder="Language"
+                  value={lang.name}
+                  onChangeText={name => {
+                    const newLangs = [...languages];
+                    newLangs[idx] = { ...newLangs[idx], name };
+                    setLanguages(newLangs);
+                  }}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 8 }]}
+                  placeholder="Level (1-5)"
+                  value={lang.level ? String(lang.level) : ''}
+                  onChangeText={level => {
+                    const newLangs = [...languages];
+                    newLangs[idx] = { ...newLangs[idx], level: Number(level) };
+                    setLanguages(newLangs);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={1}
+                />
+                <TouchableOpacity onPress={() => setLanguages(languages.filter((_, i) => i !== idx))}>
+                  <Text style={{ color: '#E53935', fontWeight: 'bold', fontSize: 18 }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+              onPress={() => setLanguages([...languages, { name: '', level: 1 }])}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Language</Text>
+            </TouchableOpacity>
+            <Text style={[styles.label, { marginTop: 24 }]}>Skills</Text>
+            {skills.map((skill, idx) => (
+              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 8 }]}
+                  placeholder="Skill"
+                  value={skill}
+                  onChangeText={val => {
+                    const newSkills = [...skills];
+                    newSkills[idx] = val;
+                    setSkills(newSkills);
+                  }}
+                />
+                <TouchableOpacity onPress={() => setSkills(skills.filter((_, i) => i !== idx))}>
+                  <Text style={{ color: '#E53935', fontWeight: 'bold', fontSize: 18 }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+              onPress={() => setSkills([...skills, ''])}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Skill</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      case 2:
         return (
           <ExperienceScreen
             data={experience}
@@ -385,7 +580,7 @@ const WizardForm = () => {
             isWizard
           />
         );
-      case 2:
+      case 3:
         return (
           <EducationScreen
             data={education}
@@ -397,21 +592,12 @@ const WizardForm = () => {
             isWizard
           />
         );
-      case 3:
-        return (
-          <SkillsScreen
-            data={skills}
-            setData={setSkills}
-            errorMsg={errorMsg}
-            setErrorMsg={setErrorMsg}
-            isWizard
-          />
-        );
       case 4:
         return (
           <TemplateSelectScreen selected={selectedTemplate} setSelected={setSelectedTemplate} isWizard />
         );
       case 5:
+        // Preview step (existing logic)
         let TemplateComponent;
         let templateProps = {};
         if (selectedTemplate === 'classic') {
@@ -434,63 +620,77 @@ const WizardForm = () => {
             bullets: edu.description ? edu.description.split('\n').filter(Boolean) : [],
           }));
           templateProps = {
+            cvName: `${contact.name} ${contact.lastname}`,
             aboutMeText: aboutMe.summary,
             imageUri: aboutMe.image,
             links: [],
             reference: { name: '', title: '', phone: '', email: '' },
             hobbies: [],
-            name: aboutMe.name,
+            name: contact.name,
+            lastname: contact.lastname,
             jobTitle: '',
-            contact: {
-              address: aboutMe.address,
-              phone: aboutMe.phone,
-              email: aboutMe.email,
-            },
+            contact,
+            address,
             experience: timelineExperience,
             education: timelineEducation,
             skills,
-            languages: [],
+            languages,
           };
         } else if (selectedTemplate === 'modern') {
           TemplateComponent = ModernTemplate;
-          // Map aboutMe
           const modernAboutMe = {
-            name: aboutMe.name,
-            role: '',
+            cvName: `${contact.name} ${contact.lastname}`,
+            name: contact.name,
+            lastname: contact.lastname,
             summary: aboutMe.summary,
-            email: aboutMe.email,
-            location: aboutMe.address,
-            phone: aboutMe.phone,
+            email: contact.email,
+            location: `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`,
+            phone: contact.phone,
             imageUri: aboutMe.image,
           };
-          // Map skills
           const modernSkills = { hard: skills, soft: [] };
-          // Map experience
           const modernExperience = experience.map(exp => ({
             period: `${exp.startDate} – ${exp.endDate}`,
             company: exp.company,
             role: exp.jobTitle,
             bullets: exp.description ? exp.description.split('\n').filter(Boolean) : [],
           }));
-          // Map education
           const modernEducation = education.map(edu => ({
             period: `${edu.startDate} – ${edu.endDate}`,
             location: '',
             degree: edu.degree,
             school: edu.school,
           }));
-          // Map languages (empty for now)
-          const modernLanguages: { label: string; level: number }[] = [];
+          const modernLanguages = languages.map(l => ({ label: l.name, level: l.level }));
           templateProps = {
+            cvName: `${contact.name} ${contact.lastname}`,
             aboutMe: modernAboutMe,
             skills: modernSkills,
             experience: modernExperience,
             education: modernEducation,
             languages: modernLanguages,
+            contact,
+            address,
           };
         } else if (selectedTemplate === 'minimal') {
           TemplateComponent = MinimalTemplate;
-          templateProps = { aboutMe, experience, education, skills };
+          templateProps = {
+            cvName: `${contact.name} ${contact.lastname}`,
+            aboutMe: {
+              ...aboutMe,
+              name: contact.name,
+              lastname: contact.lastname,
+              email: contact.email,
+              phone: contact.phone,
+              address: `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`,
+              languages,
+            },
+            experience,
+            education,
+            skills,
+            contact,
+            address,
+          };
         } else {
           TemplateComponent = ClassicTemplate;
           templateProps = {
@@ -510,16 +710,37 @@ const WizardForm = () => {
         }
         return (
           <View style={{ flex: 1, backgroundColor: '#f2f4f8' }}>
-            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'stretch', padding: 0 }} style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: 'flex-start',
+                alignItems: 'stretch',
+                padding: 0,
+                paddingBottom: 80, // leave space for the button
+              }}
+              style={{ flex: 1 }}
+            >
               <TemplateComponent {...templateProps} />
             </ScrollView>
-            <View style={{ padding: 16, backgroundColor: '#f2f4f8' }}>
+            <View
+              style={{
+                position: 'absolute',
+                right: 24,
+                bottom: 24,
+                zIndex: 10,
+              }}
+            >
               <TouchableOpacity
-                style={[styles.button, styles.buttonPrimary, { marginTop: 0 }, !selectedTemplate && styles.buttonDisabled]}
+                style={[
+                  styles.button,
+                  styles.buttonPrimary,
+                  { borderRadius: 32, width: 64, height: 64, justifyContent: 'center', alignItems: 'center', elevation: 6 },
+                  !selectedTemplate && styles.buttonDisabled,
+                ]}
                 onPress={handleDownloadPDF}
                 disabled={!selectedTemplate}
               >
-                <Text style={styles.buttonText}>Confirm & Download</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 24 }}>↓</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -808,6 +1029,23 @@ const getStyles = (isDark: boolean) => {
       color: isDark ? '#aaa' : '#555',
       textAlign: 'center',
       marginBottom: 12,
+    },
+    input: {
+      width: '100%',
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: isDark ? '#555' : '#CCC',
+      backgroundColor: isDark ? '#333' : '#FFF',
+      color: isDark ? '#FFF' : '#222',
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: isDark ? '#AAA' : '#555',
+      marginBottom: 8,
     },
   });
 };

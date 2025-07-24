@@ -44,19 +44,35 @@ interface ExperienceEntry {
 }
 
 interface Props {
+  cvName: string;
   aboutMe: AboutMe;
-  languages: Language[];
+  languages: { label: string; level: number }[];
   education: EducationEntry[];
   skills: SkillSections;
   experience: ExperienceEntry[];
+  contact: {
+    name: string;
+    lastname: string;
+    phone: string;
+    email: string;
+  };
+  address: {
+    countryName: string;
+    cityName: string;
+    address1: string;
+    address2: string;
+  };
 }
 
 const ModernTemplate: React.FC<Props> = ({
+  cvName,
   aboutMe,
   languages,
   education,
   skills,
   experience,
+  contact,
+  address,
 }) => {
   // split name into first + last
   const parts = aboutMe.name.split(' ');

@@ -42,26 +42,31 @@ interface LevelItem {
 }
 
 interface Props {
-  // left sidebar
+  cvName: string;
   aboutMeText: string;
   imageUri?: string;
   links: LinkItem[];
   reference: Reference;
   hobbies: string[];
-  // top‐right header
   name: string;
+  lastname: string;
   jobTitle: string;
   contact: {
-    address: string;
+    name: string;
+    lastname: string;
     phone: string;
     email: string;
   };
-  // timeline
+  address: {
+    countryName: string;
+    cityName: string;
+    address1: string;
+    address2: string;
+  };
   experience: TimelineEntry[];
   education: EduEntry[];
-  // bars
   skills: string[];
-  languages: LevelItem[];
+  languages: { name: string; level: number }[];
 }
 
 const ClassicTemplate: React.FC<Props> = ({
@@ -73,8 +78,10 @@ const ClassicTemplate: React.FC<Props> = ({
   hobbies,
   // header
   name,
+  lastname,
   jobTitle,
   contact,
+  address,
   // timeline
   experience,
   education,
@@ -136,7 +143,7 @@ const ClassicTemplate: React.FC<Props> = ({
             <Text style={styles.mainTitle}>{jobTitle}</Text>
           </View>
           <View>
-            <ContactRow icon="map-marker" text={contact.address} />
+            <ContactRow icon="map-marker" text={address.address1} />
             <ContactRow icon="phone" text={contact.phone} />
             <ContactRow icon="email" text={contact.email} />
           </View>
@@ -218,7 +225,7 @@ const ClassicTemplate: React.FC<Props> = ({
         <View style={styles.sectionDivider} />
         <View style={styles.barGrid}>
           {languages.map((l, i) => (
-            <Bar key={i} label={l.label} level={l.level} />
+            <Bar key={i} label={l.name} level={l.level} />
           ))}
         </View>
       </View>
