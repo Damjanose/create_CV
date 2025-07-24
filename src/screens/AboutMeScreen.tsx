@@ -8,7 +8,12 @@ import {
   useColorScheme,
   BackHandler,
   TouchableOpacity,
+  Image,
+  Alert,
+  Platform,
 } from 'react-native';
+import { launchCamera, launchImageLibrary, Asset } from 'react-native-image-picker';
+import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 
 type Props = {
   navigation?: any;
@@ -63,6 +68,72 @@ const AboutMeScreen: React.FC<Props> = ({
     setFieldErrors((e: any) => ({ ...e, [key]: false }));
   };
 
+  const requestCameraPermission = async () => {
+    let result;
+    if (Platform.OS === 'ios') {
+      result = await request(PERMISSIONS.IOS.CAMERA);
+    } else {
+      result = await request(PERMISSIONS.ANDROID.CAMERA);
+    }
+    return result === RESULTS.GRANTED;
+  };
+  const requestPhotoLibraryPermission = async () => {
+    let result;
+    if (Platform.OS === 'ios') {
+      result = await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
+    } else {
+      const version = typeof Platform.Version === 'string' ? parseInt(Platform.Version, 10) : Platform.Version;
+      if (version >= 33) {
+        result = await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
+      } else {
+        result = await request(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+      }
+    }
+    return result === RESULTS.GRANTED;
+  };
+  const handleImagePick = async () => {
+    const granted = await requestPhotoLibraryPermission();
+    if (!granted) {
+      Alert.alert('Permission required', 'Please allow photo library access to select a photo.', [
+        { text: 'Open Settings', onPress: () => openSettings() },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+    launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        setMsg('Image selection error');
+        return;
+      }
+      const asset = response.assets && response.assets[0];
+      if (asset && asset.uri) {
+        setState((prev: any) => ({ ...prev, image: asset.uri }));
+      }
+    });
+  };
+  const handleTakePhoto = async () => {
+    const granted = await requestCameraPermission();
+    if (!granted) {
+      Alert.alert('Permission required', 'Please allow camera access to take a photo.', [
+        { text: 'Open Settings', onPress: () => openSettings() },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+    launchCamera({ mediaType: 'photo', quality: 0.7 }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        setMsg('Camera error');
+        return;
+      }
+      const asset = response.assets && response.assets[0];
+      if (asset && asset.uri) {
+        setState((prev: any) => ({ ...prev, image: asset.uri }));
+      }
+    });
+  };
+
   const fields = [
     { key: 'name', label: 'Full Name *', multiline: false, keyboard: 'default' },
     { key: 'email', label: 'Email *', multiline: false, keyboard: 'email-address' },
@@ -81,6 +152,22 @@ const AboutMeScreen: React.FC<Props> = ({
     <>
       <Text style={styles.title}>About Me</Text>
       {!!msg && <Text style={styles.errorMsg}>{msg}</Text>}
+
+      <View style={styles.imagePickerRow}>
+        {state.image ? (
+          <Image source={{ uri: state.image }} style={styles.profileImage} />
+        ) : (
+          <Image source={require('../assets/images/user.png')} style={styles.profileImage} />
+        )}
+        <View style={styles.imageButtons}>
+          <TouchableOpacity style={styles.imageBtn} onPress={handleImagePick}>
+            <Text style={styles.imageBtnText}>Upload Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.imageBtn} onPress={handleTakePhoto}>
+            <Text style={styles.imageBtnText}>Take Photo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {fields.map(({ key, label, multiline, keyboard, height }) => (
         <View key={key} style={styles.field}>
@@ -197,6 +284,34 @@ const getStyles = (isDark: boolean, isWizard: boolean) =>
     },
     textSecondary: {
       color: isDark ? '#888' : '#555',
+    },
+    imagePickerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    profileImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: '#eee',
+      marginRight: 16,
+    },
+    imageButtons: {
+      flexDirection: 'column',
+      gap: 8,
+    },
+    imageBtn: {
+      backgroundColor: isDark ? '#4F8EF7' : '#1976D2',
+      paddingVertical: 6,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginBottom: 6,
+    },
+    imageBtnText: {
+      color: '#fff',
+      fontWeight: 'bold',
+      fontSize: 14,
     },
   });
 

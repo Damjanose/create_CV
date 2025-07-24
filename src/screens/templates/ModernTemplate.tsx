@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 
 interface AboutMe {
   name: string;
@@ -7,6 +7,7 @@ interface AboutMe {
   phone: string;
   address: string;
   summary: string;
+  image?: string;
 }
 interface Experience {
   jobTitle: string;
@@ -35,6 +36,12 @@ const ModernTemplate: React.FC<Props> = ({ aboutMe, experience, education, skill
     <View style={styles.outer}>
       <View style={styles.sidebar} />
       <View style={styles.container}>
+        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+          <Image
+            source={aboutMe.image ? { uri: aboutMe.image } : require('../../assets/images/user.png')}
+            style={styles.profileImage}
+          />
+        </View>
         <Text style={styles.name}>{aboutMe.name}</Text>
         <Text style={styles.contact}>{aboutMe.email} | {aboutMe.phone} | {aboutMe.address}</Text>
         <View style={styles.section}>
@@ -154,6 +161,13 @@ const styles = StyleSheet.create({
     color: '#1976D2',
     fontWeight: 'bold',
     fontSize: 13,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#eee',
+    marginBottom: 8,
   },
 });
 
