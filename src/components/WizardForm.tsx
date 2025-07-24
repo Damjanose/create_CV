@@ -19,6 +19,44 @@ import ReviewGenerateScreen from '../screens/ReviewGenerateScreen';
 
 const steps = [0, 1, 2, 3, 4]; // Just numbers for stepper
 
+// Type definitions for form data
+interface AboutMe {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  summary: string;
+}
+
+interface Experience {
+  jobTitle: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+interface Education {
+  school: string;
+  degree: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+// Error types
+interface AboutMeErrors {
+  [key: string]: boolean;
+}
+
+interface ExperienceErrors {
+  [index: number]: Partial<Record<keyof Experience, boolean>>;
+}
+
+interface EducationErrors {
+  [index: number]: Partial<Record<keyof Education, boolean>>;
+}
+
 const WizardForm = () => {
   const [step, setStep] = useState(0);
   const [fadeAnim] = useState(() => new Animated.Value(1));
@@ -27,11 +65,18 @@ const WizardForm = () => {
   const styles = getStyles(isDark);
 
   // Replace these with your real state/hooks
-  const [aboutMe, setAboutMe] = useState<any>({});
-  const [experience, setExperience] = useState<any[]>([]);
-  const [education, setEducation] = useState<any[]>([]);
+  const [aboutMe, setAboutMe] = useState<AboutMe>({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    summary: '',
+  });
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
-  const [errors, setErrors] = useState<any>({});
+  // errors can be AboutMeErrors | ExperienceErrors | EducationErrors
+  const [errors, setErrors] = useState<AboutMeErrors | ExperienceErrors | EducationErrors>({});
   const [errorMsg, setErrorMsg] = useState('');
 
   // Validation per step
@@ -41,7 +86,7 @@ const WizardForm = () => {
     let newErrors: any = {};
     if (step === 0) {
       // About Me required fields
-      const required = ['name', 'email', 'phone', 'address', 'summary'];
+      const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
       required.forEach((field) => {
         if (!aboutMe[field] || aboutMe[field].trim() === '') {
           newErrors[field] = true;
@@ -58,7 +103,7 @@ const WizardForm = () => {
 
   const canGoNext = () => {
     if (step === 0) {
-      const required = ['name', 'email', 'phone', 'address', 'summary'];
+      const required: (keyof AboutMe)[] = ['name', 'email', 'phone', 'address', 'summary'];
       return required.every((field) => aboutMe[field] && aboutMe[field].trim() !== '');
     }
     // TODO: Add canGoNext logic for other steps
