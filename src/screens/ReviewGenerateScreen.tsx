@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert, useColorScheme, TouchableOpacity, FlatList, ScrollView } from 'react-native';
+import ClassicTemplate from './templates/ClassicTemplate';
+import ModernTemplate from './templates/ModernTemplate';
+import MinimalTemplate from './templates/MinimalTemplate';
 
 const TEMPLATES = [
   { id: 'classic', name: 'Classic', description: 'A clean, traditional layout.' },
@@ -32,6 +35,7 @@ const ReviewGenerateScreen = ({
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Only used in non-wizard mode
   const [localSelectedTemplate, setLocalSelectedTemplate] = useState('classic');
@@ -82,9 +86,19 @@ const ReviewGenerateScreen = ({
     Alert.alert('PDF generation coming soon!', `Selected template: ${templateId}`);
   };
 
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+  const handleBackFromPreview = () => {
+    setShowPreview(false);
+  };
+  const handleConfirmDownload = () => {
+    handleGeneratePDF();
+  };
+
   return (
     <View style={styles.container}>
-      {!showTemplates ? (
+      {!showTemplates && !showPreview ? (
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
           <Text style={styles.title}>Review Your CV</Text>
           <Text style={styles.sectionTitle}>About Me</Text>
@@ -133,7 +147,7 @@ const ReviewGenerateScreen = ({
             </View>
           )}
         </ScrollView>
-      ) : (
+      ) : showTemplates && !showPreview ? (
         <>
           <Text style={styles.title}>Choose a CV Template</Text>
           <FlatList
@@ -150,15 +164,42 @@ const ReviewGenerateScreen = ({
             </View>
             <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
               <Button
-                title="Generate PDF"
-                onPress={handleGeneratePDF}
+                title="Preview"
+                onPress={handlePreview}
                 color={isDark ? '#4F8EF7' : '#1976D2'}
                 disabled={!templateId}
               />
             </View>
           </View>
         </>
-      )}
+      ) : showPreview ? (
+        <ScrollView contentContainerStyle={{ padding: 16, alignItems: 'center' }}>
+          <Text style={styles.title}>Preview</Text>
+          <View style={{ width: '100%', maxWidth: 500, marginBottom: 24 }}>
+            {templateId === 'classic' && (
+              <ClassicTemplate aboutMe={cv} experience={cv.experience} education={cv.education} skills={cv.skills} />
+            )}
+            {templateId === 'modern' && (
+              <ModernTemplate aboutMe={cv} experience={cv.experience} education={cv.education} skills={cv.skills} />
+            )}
+            {templateId === 'minimal' && (
+              <MinimalTemplate aboutMe={cv} experience={cv.experience} education={cv.education} skills={cv.skills} />
+            )}
+          </View>
+          <View style={styles.buttonRow}>
+            <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
+              <Button title="Back" onPress={handleBackFromPreview} color={isDark ? '#888' : '#ccc'} />
+            </View>
+            <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+              <Button
+                title="Confirm & Download"
+                onPress={handleConfirmDownload}
+                color={isDark ? '#4F8EF7' : '#1976D2'}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      ) : null}
     </View>
   );
 };

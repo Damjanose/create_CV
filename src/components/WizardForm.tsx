@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 
+// @ts-ignore: No types for react-native-html-to-pdf
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
 
@@ -25,7 +26,7 @@ import ClassicTemplate from '../screens/templates/ClassicTemplate';
 import ModernTemplate from '../screens/templates/ModernTemplate';
 import MinimalTemplate from '../screens/templates/MinimalTemplate';
 
-const steps = [0, 1, 2, 3, 4]; // Remove review step, preview is shown after Finish
+const steps = [0, 1, 2, 3, 4, 5]; // 0: AboutMe, 1: Experience, 2: Education, 3: Skills, 4: TemplateSelect, 5: TemplatePreview
 
 // Type definitions for form data
 interface AboutMe {
@@ -252,29 +253,6 @@ const WizardForm = () => {
   };
 
   const renderStepContent = () => {
-    if (showPreview) {
-      let TemplateComponent;
-      if (selectedTemplate === 'classic') TemplateComponent = ClassicTemplate;
-      else if (selectedTemplate === 'modern') TemplateComponent = ModernTemplate;
-      else TemplateComponent = MinimalTemplate;
-      return (
-        <View style={{ alignItems: 'center', width: '100%' }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Preview</Text>
-          <TemplateComponent
-            aboutMe={aboutMe}
-            experience={experience}
-            education={education}
-            skills={skills}
-          />
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary, { marginTop: 24 }]}
-            onPress={() => setShowPreview(false)}
-          >
-            <Text style={styles.buttonText}>Back to Wizard</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
     switch (step) {
       case 0:
         return (
@@ -326,7 +304,28 @@ const WizardForm = () => {
         return (
           <TemplateSelectScreen selected={selectedTemplate} setSelected={setSelectedTemplate} isWizard />
         );
-      // No review step here; preview is shown after Finish
+      case 5:
+        let TemplateComponent;
+        if (selectedTemplate === 'classic') TemplateComponent = ClassicTemplate;
+        else if (selectedTemplate === 'modern') TemplateComponent = ModernTemplate;
+        else TemplateComponent = MinimalTemplate;
+        return (
+          <View style={{ alignItems: 'center', width: '100%' }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Preview</Text>
+            <TemplateComponent
+              aboutMe={aboutMe}
+              experience={experience}
+              education={education}
+              skills={skills}
+            />
+            <TouchableOpacity
+              style={[styles.button, styles.buttonPrimary, { marginTop: 24 }]}
+              onPress={handleDownloadPDF}
+            >
+              <Text style={styles.buttonText}>Confirm & Download</Text>
+            </TouchableOpacity>
+          </View>
+        );
       default:
         return null;
     }
@@ -373,7 +372,7 @@ const WizardForm = () => {
               </Text>
             </TouchableOpacity>
 
-            {step < steps.length - 1 ? (
+            {step < steps.length - 2 ? (
               <TouchableOpacity
                 style={[
                   styles.button,
@@ -391,14 +390,14 @@ const WizardForm = () => {
                   Next
                 </Text>
               </TouchableOpacity>
-            ) : (
+            ) : step === steps.length - 2 ? (
               <TouchableOpacity
                 style={[styles.button, styles.buttonPrimary]}
-                onPress={handleDownloadPDF}
+                onPress={handleNext}
               >
-                <Text style={styles.buttonText}>Finish & Download</Text>
+                <Text style={styles.buttonText}>Preview</Text>
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         </Animated.View>
         {/* Stepper at the bottom, numbers only */}
