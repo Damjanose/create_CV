@@ -7,6 +7,17 @@ const TEMPLATES = [
   { id: 'minimal', name: 'Minimal', description: 'Simple and elegant.' },
 ];
 
+interface ReviewGenerateScreenProps {
+  navigation?: any;
+  aboutMe: any;
+  experience: any;
+  education: any;
+  skills: any;
+  isWizard?: boolean;
+  onBack?: () => void;
+  selectedTemplate?: string;
+}
+
 const ReviewGenerateScreen = ({
   navigation,
   aboutMe,
@@ -14,12 +25,32 @@ const ReviewGenerateScreen = ({
   education,
   skills,
   isWizard,
-}: any) => {
+  onBack,
+  selectedTemplate,
+}: ReviewGenerateScreenProps) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
-  const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // Only used in non-wizard mode
+  const [localSelectedTemplate, setLocalSelectedTemplate] = useState('classic');
+  const templateId = isWizard ? selectedTemplate : localSelectedTemplate;
+  const renderTemplate = ({ item }: any) => (
+    !isWizard ? (
+      <TouchableOpacity
+        style={[styles.templateCard, localSelectedTemplate === item.id && styles.selectedTemplate]}
+        onPress={() => setLocalSelectedTemplate(item.id)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.templateName}>{item.name}</Text>
+        <Text style={styles.templateDesc}>{item.description}</Text>
+        {localSelectedTemplate === item.id && (
+          <Text style={styles.selectedLabel}>Selected</Text>
+        )}
+      </TouchableOpacity>
+    ) : null
+  );
 
   // Use props if provided, otherwise fallback to mock
   const cv = aboutMe && experience && education && skills ? {
@@ -47,23 +78,9 @@ const ReviewGenerateScreen = ({
   };
 
   const handleGeneratePDF = () => {
-    // TODO: Implement PDF generation using selectedTemplate
-    Alert.alert('PDF generation coming soon!', `Selected template: ${selectedTemplate}`);
+    // TODO: Implement PDF generation using templateId
+    Alert.alert('PDF generation coming soon!', `Selected template: ${templateId}`);
   };
-
-  const renderTemplate = ({ item }: any) => (
-    <TouchableOpacity
-      style={[styles.templateCard, selectedTemplate === item.id && styles.selectedTemplate]}
-      onPress={() => setSelectedTemplate(item.id)}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.templateName}>{item.name}</Text>
-      <Text style={styles.templateDesc}>{item.description}</Text>
-      {selectedTemplate === item.id && (
-        <Text style={styles.selectedLabel}>Selected</Text>
-      )}
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
@@ -95,18 +112,24 @@ const ReviewGenerateScreen = ({
           ))}
           <Text style={styles.sectionTitle}>Skills</Text>
           <Text style={styles.field}>{cv.skills.join(', ')}</Text>
-          {!isWizard && (
+          {(
             <View style={styles.buttonRow}>
               <View style={[styles.buttonWrapper, { flex: 1, marginRight: 8 }]}> 
-                <Button title="Back" onPress={() => navigation.goBack()} color={isDark ? '#888' : '#ccc'} />
-              </View>
-              <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
                 <Button
-                  title="Next: Choose Template"
-                  onPress={() => setShowTemplates(true)}
-                  color={isDark ? '#4F8EF7' : '#1976D2'}
+                  title="Back"
+                  onPress={isWizard && onBack ? onBack : () => navigation?.goBack?.()}
+                  color={isDark ? '#888' : '#ccc'}
                 />
               </View>
+              {!isWizard && (
+                <View style={[styles.buttonWrapper, { flex: 1, marginLeft: 8 }]}> 
+                  <Button
+                    title="Next: Choose Template"
+                    onPress={() => setShowTemplates(true)}
+                    color={isDark ? '#4F8EF7' : '#1976D2'}
+                  />
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
@@ -130,7 +153,7 @@ const ReviewGenerateScreen = ({
                 title="Generate PDF"
                 onPress={handleGeneratePDF}
                 color={isDark ? '#4F8EF7' : '#1976D2'}
-                disabled={!selectedTemplate}
+                disabled={!templateId}
               />
             </View>
           </View>

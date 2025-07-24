@@ -17,8 +17,11 @@ import EducationScreen from '../screens/EducationScreen';
 import SkillsScreen from '../screens/SkillsScreen';
 import ReviewGenerateScreen from '../screens/ReviewGenerateScreen';
 import TemplateSelectScreen from '../screens/TemplateSelectScreen';
+import ClassicTemplate from '../screens/templates/ClassicTemplate';
+import ModernTemplate from '../screens/templates/ModernTemplate';
+import MinimalTemplate from '../screens/templates/MinimalTemplate';
 
-const steps = [0, 1, 2, 3, 4, 5]; // Add template selection step
+const steps = [0, 1, 2, 3, 4]; // Remove review step, preview is shown after Finish
 
 // Type definitions for form data
 interface AboutMe {
@@ -93,6 +96,7 @@ const WizardForm = () => {
   const [errors, setErrors] = useState<AboutMeErrors | ExperienceErrors | EducationErrors>({});
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('classic');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Validation per step
   const validateStep = () => {
@@ -151,6 +155,29 @@ const WizardForm = () => {
   };
 
   const renderStepContent = () => {
+    if (showPreview) {
+      let TemplateComponent;
+      if (selectedTemplate === 'classic') TemplateComponent = ClassicTemplate;
+      else if (selectedTemplate === 'modern') TemplateComponent = ModernTemplate;
+      else TemplateComponent = MinimalTemplate;
+      return (
+        <View style={{ alignItems: 'center', width: '100%' }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Preview</Text>
+          <TemplateComponent
+            aboutMe={aboutMe}
+            experience={experience}
+            education={education}
+            skills={skills}
+          />
+          <TouchableOpacity
+            style={[styles.button, styles.buttonPrimary, { marginTop: 24 }]}
+            onPress={() => setShowPreview(false)}
+          >
+            <Text style={styles.buttonText}>Back to Wizard</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     switch (step) {
       case 0:
         return (
@@ -202,17 +229,7 @@ const WizardForm = () => {
         return (
           <TemplateSelectScreen selected={selectedTemplate} setSelected={setSelectedTemplate} isWizard />
         );
-      case 5:
-        return (
-          <ReviewGenerateScreen
-            aboutMe={aboutMe}
-            experience={experience}
-            education={education}
-            skills={skills}
-            selectedTemplate={selectedTemplate}
-            isWizard
-          />
-        );
+      // No review step here; preview is shown after Finish
       default:
         return null;
     }
@@ -280,7 +297,7 @@ const WizardForm = () => {
             ) : (
               <TouchableOpacity
                 style={[styles.button, styles.buttonPrimary]}
-                onPress={() => {/* finalize */}}
+                onPress={() => setShowPreview(true)}
               >
                 <Text style={styles.buttonText}>Finish</Text>
               </TouchableOpacity>
