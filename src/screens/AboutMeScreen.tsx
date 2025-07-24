@@ -91,27 +91,70 @@ const AboutMeScreen: React.FC<Props> = ({
     }
     return result === RESULTS.GRANTED;
   };
+
   const handleImagePick = async () => {
-    const granted = await requestPhotoLibraryPermission();
-    if (!granted) {
-      Alert.alert('Permission required', 'Please allow photo library access to select a photo.', [
-        { text: 'Open Settings', onPress: () => openSettings() },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-      return;
-    }
-    launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, (response) => {
-      if (response.didCancel) return;
-      if (response.errorCode) {
-        setMsg('Image selection error');
+    try {
+      // 1) CHECK + REQUEST permission
+      let photoPerm: string;
+      if (Platform.OS === 'ios') {
+        photoPerm = await check(PERMISSIONS.IOS.PHOTO_LIBRARY);
+        if (photoPerm !== RESULTS.GRANTED) {
+          photoPerm = await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
+        }
+      } else {
+        // Android 13+ vs older
+        const version = 
+          typeof Platform.Version === 'string'
+            ? parseInt(Platform.Version, 10)
+            : Platform.Version;
+        const permType =
+          version >= 33
+            ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES
+            : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
+        photoPerm = await check(permType);
+        if (photoPerm !== RESULTS.GRANTED) {
+          photoPerm = await request(permType);
+        }
+      }
+  
+      if (photoPerm !== RESULTS.GRANTED) {
+        // user denied – prompt to open settings
+        Alert.alert(
+          'Permission required',
+          'Please allow photo library access to select a photo.',
+          [
+            { text: 'Open Settings', onPress: () => openSettings() },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
         return;
       }
-      const asset = response.assets && response.assets[0];
-      if (asset && asset.uri) {
+  
+      // 2) LAUNCH the gallery picker
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.7,
+      });
+  
+      // 3) HANDLE the response
+      if (result.didCancel) {
+        return;
+      }
+      if (result.errorCode) {
+        setMsg('Image selection error: ' + result.errorMessage);
+        return;
+      }
+      const asset = result.assets && result.assets[0];
+      if (asset?.uri) {
         setState((prev: any) => ({ ...prev, image: asset.uri }));
       }
-    });
+    } catch (e) {
+      console.warn('handleImagePick error', e);
+      setMsg('Unexpected error selecting image');
+    }
   };
+  
+
   const handleTakePhoto = async () => {
     const granted = await requestCameraPermission();
     if (!granted) {
