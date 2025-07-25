@@ -41,7 +41,7 @@ const TEMPLATES: Template[] = [
     id: "classic",
     preview: (
       <Image
-        source={require("../assets/images/templates/clasictemplate.jpg")}
+        source={require("../assets/images/templates/classicTemplate.jpg")}
         style={{ width: "100%", height: "100%" }}
         resizeMode="contain"
       />
@@ -51,7 +51,7 @@ const TEMPLATES: Template[] = [
     id: "modern",
     preview: (
       <Image
-        source={require("../assets/images/templates/moderntemplate.jpg")}
+        source={require("../assets/images/templates/modernTemplate.jpg")}
         style={{ width: "100%", height: "100%" }}
         resizeMode="contain"
       />
@@ -61,7 +61,7 @@ const TEMPLATES: Template[] = [
     id: "minimal",
     preview: (
       <Image
-        source={require("../assets/images/templates/simpletemplate.png")}
+        source={require("../assets/images/templates/simpleTemplate.png")}
         style={{ width: "100%", height: "100%" }}
         resizeMode="contain"
       />

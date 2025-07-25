@@ -1,97 +1,55 @@
-import React, { useEffect, useRef } from "react";
-import {
-  Dimensions,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React from "react";
+import { View, Text, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
+import Carousel from "react-native-reanimated-carousel";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface Template {
   id: string;
-  preview?: React.ReactNode;
+  preview: React.ReactNode;
 }
 
 interface TemplateSelectStepProps {
   templates: Template[];
   selectedTemplate: string;
   setSelectedTemplate: (id: string) => void;
-  styles: any;
-  isDark: boolean;
 }
-
-const ITEM_GAP = 16;
-const ITEM_WIDTH = SCREEN_WIDTH * 0.9;
 
 const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
   templates,
   selectedTemplate,
   setSelectedTemplate,
 }) => {
-  const flatListRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    const idx = templates.findIndex((t) => t.id === selectedTemplate);
-    if (idx >= 0 && flatListRef.current) {
-      flatListRef.current.scrollToIndex({ index: idx, animated: true });
-    }
-  }, [selectedTemplate]);
+  const ITEM_WIDTH = SCREEN_WIDTH * 0.9;
+  const ITEM_HEIGHT = SCREEN_HEIGHT * 0.52;
 
   return (
-    <View style={{ flex: 1 }}>
-      <Text style={stylesContainer.title}>Choose Your CV Template</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Choose Your CV Template</Text>
 
-      <FlatList
-        ref={flatListRef}
+      <Carousel
+        width={ITEM_WIDTH}
+        height={ITEM_HEIGHT}
         data={templates}
-        keyExtractor={(item) => item.id}
-        horizontal
+        mode="parallax"
+        modeConfig={{ parallaxScrollingScale: 0.9, parallaxScrollingOffset: 50 }}
+        style={{ alignSelf: "center" }}
+        scrollAnimationDuration={500}
         pagingEnabled
-        snapToInterval={ITEM_WIDTH + ITEM_GAP}
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 0,
-        }}
-        getItemLayout={(_, index) => ({
-          length: ITEM_WIDTH + ITEM_GAP,
-          offset: (ITEM_WIDTH + ITEM_GAP) * index,
-          index,
-        })}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const isSelected = item.id === selectedTemplate;
 
-          const isFirst = index === 0;
-          const isLast = index === templates.length - 1;
-
           return (
-            <View
-              style={{
-                width: ITEM_WIDTH - 5,
-                marginLeft: isFirst ? 0 : ITEM_GAP / 2,
-                marginRight: isLast ? 0 : ITEM_GAP / 2,
-              }}
+            <TouchableOpacity
+              activeOpacity={0.95}
+              onPress={() => setSelectedTemplate(item.id)}
+              style={[
+                styles.cardWrapper,
+                isSelected && styles.selectedCard,
+              ]}
             >
-              <TouchableOpacity
-                onPress={() => setSelectedTemplate(item.id)}
-                activeOpacity={0.95}
-                style={[
-                  {
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    borderWidth: isSelected ? 3 : 0,
-                    borderColor: isSelected ? "#4F8EF7" : "transparent",
-                  },
-                ]}
-              >
-                <View style={stylesContainer.imageContainer}>
-                  {item.preview}
-                </View>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.imageContainer}>{item.preview}</View>
+            </TouchableOpacity>
           );
         }}
       />
@@ -99,17 +57,36 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
   );
 };
 
-const stylesContainer = StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 12,
+  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 12,
     color: "#fff",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  cardWrapper: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+    backgroundColor: "#1c1c1c",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  selectedCard: {
+    borderColor: "#4F8EF7",
   },
   imageContainer: {
     width: "100%",
-    height: SCREEN_HEIGHT * 0.52,
+    height: "100%",
   },
 });
 
