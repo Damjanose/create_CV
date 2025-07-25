@@ -179,8 +179,6 @@ const WizardForm = () => {
             templates={TEMPLATES}
             selectedTemplate={selectedTemplate}
             setSelectedTemplate={setSelectedTemplate}
-            styles={styles}
-            isDark={isDark}
           />
         );
       case 5:
