@@ -10,6 +10,7 @@ import {
   Platform,
   TextInput,
   Image,
+  Dimensions,
 } from 'react-native';
 
 import RNFS from 'react-native-fs';
@@ -46,8 +47,9 @@ const TEMPLATES: Template[] = [
     preview: (
       <Image
         source={require('../assets/images/templates/clasictemplate.jpg')}
-        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
-      />
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="contain"
+        />
     ),
   },
   {
@@ -55,8 +57,9 @@ const TEMPLATES: Template[] = [
     preview: (
       <Image
         source={require('../assets/images/templates/moderntemplate.jpg')}
-        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
-      />
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="contain"
+        />
     ),
   },
   {
@@ -64,7 +67,8 @@ const TEMPLATES: Template[] = [
     preview: (
       <Image
         source={require('../assets/images/templates/simpletemplate.png')}
-        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="contain"
       />
     ),
   },
@@ -500,11 +504,8 @@ const getStyles = (isDark: boolean) => {
       backgroundColor: primary,
     },
     card: {
-      width: '90%',
       maxWidth: 400,
-      backgroundColor: cardBg,
       borderRadius: 16,
-      padding: 20,
       shadowColor: isDark ? '#000' : '#AAA',
       shadowOpacity: 0.15,
       shadowOffset: { width: 0, height: 4 },

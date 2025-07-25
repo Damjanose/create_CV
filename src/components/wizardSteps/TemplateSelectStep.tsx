@@ -1,13 +1,17 @@
-import React from 'react';
-import { View, TouchableOpacity, ScrollView, Text, StyleProp, ViewStyle, TextStyle, Dimensions } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
 
-const CARD_WIDTH = 220;
-const CARD_HEIGHT = 165; // 4:3 aspect ratio
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Template {
   id: string;
-  name: string;
-  description: string;
   preview?: React.ReactNode;
 }
 
@@ -15,65 +19,98 @@ interface TemplateSelectStepProps {
   templates: Template[];
   selectedTemplate: string;
   setSelectedTemplate: (id: string) => void;
-  styles: { [key: string]: StyleProp<ViewStyle | TextStyle> };
+  styles: any;
   isDark: boolean;
 }
+
+const ITEM_GAP = 16;
+const ITEM_WIDTH = SCREEN_WIDTH * 0.9;
 
 const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
   templates,
   selectedTemplate,
   setSelectedTemplate,
-  styles,
-  isDark,
-}) => (
-  <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 24 }}
-      style={{ width: '100%', marginTop: 32 }}
-    >
-      {templates.map((template) => {
-        const isSelected = selectedTemplate === template.id;
-        return (
-          <TouchableOpacity
-            key={template.id}
-            style={{
-              marginHorizontal: 16,
-              borderWidth: isSelected ? 3 : 0,
-              borderColor: isSelected ? (isDark ? '#4F8EF7' : '#1976D2') : 'transparent',
-              borderRadius: 18,
-              backgroundColor: isDark ? '#23262F' : '#fff',
-              shadowOpacity: isSelected ? 0.25 : 0.08,
-              elevation: isSelected ? 8 : 2,
-              shadowColor: isDark ? '#4F8EF7' : '#1976D2',
-              shadowOffset: { width: 0, height: 4 },
-              shadowRadius: 12,
-              width: CARD_WIDTH,
-              height: CARD_HEIGHT,
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              padding: 0,
-            }}
-            onPress={() => setSelectedTemplate(template.id)}
-            activeOpacity={0.85}
-          >
-            {/* Image fills the card, no stretching, rounded corners */}
-            <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden', backgroundColor: '#f2f4f8', justifyContent: 'center', alignItems: 'center' }}>
-              {template.preview}
-            </View>
-            {isSelected && (
-              <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: isDark ? '#4F8EF7' : '#1976D2', borderRadius: 12, padding: 2, paddingHorizontal: 7, zIndex: 2 }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>✓</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  </View>
-);
+}) => {
+  const flatListRef = useRef<FlatList>(null);
 
-export default TemplateSelectStep; 
+  useEffect(() => {
+    const idx = templates.findIndex(t => t.id === selectedTemplate);
+    if (idx >= 0 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index: idx, animated: true });
+    }
+  }, [selectedTemplate]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={stylesContainer.title}>Choose Your CV Template</Text>
+
+      <FlatList
+        ref={flatListRef}
+        data={templates}
+        keyExtractor={(item) => item.id}
+        horizontal
+        pagingEnabled
+        snapToInterval={ITEM_WIDTH + ITEM_GAP}
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 0,
+        }}
+        getItemLayout={(_, index) => ({
+          length: ITEM_WIDTH + ITEM_GAP,
+          offset: (ITEM_WIDTH + ITEM_GAP) * index,
+          index,
+        })}
+        renderItem={({ item, index }) => {
+          const isSelected = item.id === selectedTemplate;
+
+          const isFirst = index === 0;
+          const isLast = index === templates.length - 1;
+
+          return (
+            <View
+              style={{
+                width: ITEM_WIDTH - 5,
+                marginLeft: isFirst ? 0 : ITEM_GAP / 2,
+                marginRight: isLast ? 0 : ITEM_GAP / 2,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => setSelectedTemplate(item.id)}
+                activeOpacity={0.95}
+                style={[
+                  {
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    borderWidth: isSelected ? 3 : 0,
+                    borderColor: isSelected ? '#4F8EF7' : 'transparent',
+                  },
+                ]}
+              >
+                <View style={stylesContainer.imageContainer}>
+                  {item.preview}
+                </View>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
+      />
+    </View>
+  );
+};
+
+const stylesContainer = StyleSheet.create({
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 12,
+    color: '#fff',
+  },
+  imageContainer: {
+    width: '100%',
+    height: SCREEN_HEIGHT * 0.52,
+  },
+});
+
+export default TemplateSelectStep;

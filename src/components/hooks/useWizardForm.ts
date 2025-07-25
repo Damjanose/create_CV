@@ -63,7 +63,6 @@ const stepLabels = [
   'Template',
   'Preview',
 ];
-
 function getStyles(isDark: boolean) {
   const primary = isDark ? '#4F8EF7' : '#1976D2';
   const secondary = isDark ? '#888' : '#CCC';
