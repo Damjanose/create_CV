@@ -261,7 +261,7 @@ function getStyles(isDark: boolean) {
     label: {
       fontSize: 16,
       fontWeight: "600",
-      color: isDark ? "#AAA" : "#555",
+      color: isDark ? "#f2f2f2" : "#555",
       marginBottom: 8,
     },
   });
@@ -315,26 +315,66 @@ const useWizardForm = (): UseWizardFormReturn => {
   const styles = getStyles(isDark);
 
   const [aboutMe, setAboutMe] = useState<AboutMe>({
-    summary: "",
+    summary:
+      "i am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a devi am a dev",
     image: "",
     imageBase64: "",
   });
   const [contact, setContact] = useState<Contact>({
-    name: "",
-    lastname: "",
-    phone: "",
-    email: "",
+    name: "name",
+    lastname: "lastNaem",
+    phone: "12312313",
+    email: "asdasd@asdasd.asdad",
   });
   const [address, setAddress] = useState<Address>({
-    countryName: "",
-    cityName: "",
-    address1: "",
+    countryName: "al",
+    cityName: "tr",
+    address1: "bllok",
     address2: "",
   });
-  const [languages, setLanguages] = useState<Language[]>([]);
-  const [experience, setExperience] = useState<Experience[]>([]);
-  const [education, setEducation] = useState<Education[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([
+    { name: "al", level: 2 },
+    { name: "en", level: 2 },
+  ]);
+  const [experience, setExperience] = useState<Experience[]>([
+    {
+      jobTitle: "string",
+      company: "string",
+      startDate: "string",
+      endDate: "string",
+      description: "string",
+    },
+    {
+      jobTitle: "string",
+      company: "string",
+      startDate: "string",
+      endDate: "string",
+      description: "string",
+    },
+  ]);
+  const [education, setEducation] = useState<Education[]>([
+    {
+      school: "string",
+      degree: "string",
+      startDate: "string",
+      endDate: "string",
+      description: "string",
+    },
+    {
+      school: "string",
+      degree: "string",
+      startDate: "string",
+      endDate: "string",
+      description: "string",
+    },
+  ]);
+  const [skills, setSkills] = useState<string[]>([
+    "html",
+    "css",
+    "asd",
+    "asd",
+    "asd",
+  ]);
   const [errors, setErrors] = useState<
     AboutMeErrors | ExperienceErrors | EducationErrors
   >({});
