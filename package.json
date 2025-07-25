@@ -20,6 +20,7 @@
     "react": "19.1.0",
     "react-native": "0.80.1",
     "react-native-encrypted-storage": "^4.0.3",
+    "react-native-floating-action": "^1.22.0",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.27.2",
     "react-native-html-to-pdf": "^0.12.0",

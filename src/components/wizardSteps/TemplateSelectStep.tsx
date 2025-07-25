@@ -1,14 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   Dimensions,
   FlatList,
   StyleSheet,
-} from 'react-native';
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface Template {
   id: string;
@@ -34,7 +34,7 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    const idx = templates.findIndex(t => t.id === selectedTemplate);
+    const idx = templates.findIndex((t) => t.id === selectedTemplate);
     if (idx >= 0 && flatListRef.current) {
       flatListRef.current.scrollToIndex({ index: idx, animated: true });
     }
@@ -81,9 +81,9 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
                 style={[
                   {
                     borderRadius: 12,
-                    overflow: 'hidden',
+                    overflow: "hidden",
                     borderWidth: isSelected ? 3 : 0,
-                    borderColor: isSelected ? '#4F8EF7' : 'transparent',
+                    borderColor: isSelected ? "#4F8EF7" : "transparent",
                   },
                 ]}
               >
@@ -102,13 +102,13 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
 const stylesContainer = StyleSheet.create({
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginVertical: 12,
-    color: '#fff',
+    color: "#fff",
   },
   imageContainer: {
-    width: '100%',
+    width: "100%",
     height: SCREEN_HEIGHT * 0.52,
   },
 });

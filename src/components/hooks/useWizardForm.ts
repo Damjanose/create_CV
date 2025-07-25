@@ -49,47 +49,54 @@ export interface Template {
   description: string;
 }
 
-import { useState } from 'react';
-import { useColorScheme, Animated, Platform, Alert, StyleSheet, ColorSchemeName } from 'react-native';
+import { useState } from "react";
+import {
+  Alert,
+  Animated,
+  ColorSchemeName,
+  Platform,
+  StyleSheet,
+  useColorScheme,
+} from "react-native";
 // @ts-ignore: No types for react-native-html-to-pdf
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import RNFS from 'react-native-fs';
+import RNHTMLtoPDF from "react-native-html-to-pdf";
+import RNFS from "react-native-fs";
 
 const stepLabels = [
-  'About Me, Contact & Address',
-  'Languages & Skills',
-  'Experience',
-  'Education',
-  'Template',
-  'Preview',
+  "About Me, Contact & Address",
+  "Languages & Skills",
+  "Experience",
+  "Education",
+  "Template",
+  "Preview",
 ];
 function getStyles(isDark: boolean) {
-  const primary = isDark ? '#4F8EF7' : '#1976D2';
-  const secondary = isDark ? '#888' : '#CCC';
-  const bg = isDark ? '#181A20' : '#f2f4f8';
-  const cardBg = isDark ? '#23262F' : '#FFFFFF';
-  const errorBg = isDark ? '#2d1a1a' : '#ffeaea';
+  const primary = isDark ? "#4F8EF7" : "#1976D2";
+  const secondary = isDark ? "#888" : "#CCC";
+  const bg = isDark ? "#181A20" : "#f2f4f8";
+  const cardBg = isDark ? "#23262F" : "#FFFFFF";
+  const errorBg = isDark ? "#2d1a1a" : "#ffeaea";
   return StyleSheet.create({
     container: {
       flexGrow: 1,
       backgroundColor: bg,
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: 24,
     },
     stepperContainer: {
-      display: 'none',
+      display: "none",
     },
     stepperContainerBottom: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       marginTop: 24,
-      width: '100%',
+      width: "100%",
       maxWidth: 400,
-      justifyContent: 'center',
+      justifyContent: "center",
     },
     stepWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       flex: 1,
     },
     circle: {
@@ -97,8 +104,8 @@ function getStyles(isDark: boolean) {
       height: 28,
       borderRadius: 14,
       backgroundColor: secondary,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       zIndex: 2,
     },
     circleCurrent: {
@@ -108,18 +115,18 @@ function getStyles(isDark: boolean) {
       backgroundColor: primary,
     },
     circleText: {
-      color: '#fff',
-      fontWeight: '600',
+      color: "#fff",
+      fontWeight: "600",
     },
     stepLabel: {
       marginHorizontal: 4,
       fontSize: 12,
-      color: isDark ? '#AAA' : '#555',
+      color: isDark ? "#AAA" : "#555",
       flexShrink: 1,
     },
     stepLabelCurrent: {
       color: primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     line: {
       height: 2,
@@ -132,58 +139,58 @@ function getStyles(isDark: boolean) {
       backgroundColor: primary,
     },
     card: {
-      width: '90%',
+      width: "90%",
       maxWidth: 400,
       backgroundColor: cardBg,
       borderRadius: 16,
       padding: 20,
-      shadowColor: isDark ? '#000' : '#AAA',
+      shadowColor: isDark ? "#000" : "#AAA",
       shadowOpacity: 0.15,
       shadowOffset: { width: 0, height: 4 },
       shadowRadius: 12,
       elevation: 6,
-      alignItems: 'center',
+      alignItems: "center",
     },
     title: {
       fontSize: 22,
-      fontWeight: '700',
-      color: isDark ? '#FFF' : '#222',
+      fontWeight: "700",
+      color: isDark ? "#FFF" : "#222",
       marginBottom: 12,
-      textAlign: 'center',
+      textAlign: "center",
     },
     errorBox: {
       backgroundColor: errorBg,
       padding: 8,
       borderRadius: 8,
       marginBottom: 12,
-      width: '100%',
+      width: "100%",
     },
     errorText: {
-      color: '#E53935',
-      textAlign: 'center',
-      fontWeight: '600',
+      color: "#E53935",
+      textAlign: "center",
+      fontWeight: "600",
     },
     content: {
-      width: '100%',
+      width: "100%",
       marginBottom: 16,
     },
     buttonRow: {
-      flexDirection: 'row',
-      width: '100%',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      width: "100%",
+      justifyContent: "space-between",
     },
     button: {
       flex: 1,
       paddingVertical: 12,
       borderRadius: 8,
-      alignItems: 'center',
+      alignItems: "center",
       marginHorizontal: 4,
     },
     buttonPrimary: {
       backgroundColor: primary,
     },
     buttonSecondary: {
-      backgroundColor: 'transparent',
+      backgroundColor: "transparent",
       borderWidth: 1,
       borderColor: secondary,
     },
@@ -192,27 +199,27 @@ function getStyles(isDark: boolean) {
     },
     buttonText: {
       fontSize: 16,
-      fontWeight: '600',
-      color: '#FFF',
+      fontWeight: "600",
+      color: "#FFF",
     },
     textSecondary: {
-      color: isDark ? '#888' : '#555',
+      color: isDark ? "#888" : "#555",
     },
     textDisabled: {
-      color: isDark ? '#666' : '#AAA',
+      color: isDark ? "#666" : "#AAA",
     },
     templateCard: {
       width: 140,
       height: 180,
-      backgroundColor: isDark ? '#181A20' : '#f7f9fa',
+      backgroundColor: isDark ? "#181A20" : "#f7f9fa",
       borderRadius: 12,
       marginHorizontal: 8,
       padding: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: 2,
-      borderColor: 'transparent',
-      shadowColor: isDark ? '#000' : '#aaa',
+      borderColor: "transparent",
+      shadowColor: isDark ? "#000" : "#aaa",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
       shadowRadius: 6,
@@ -225,36 +232,36 @@ function getStyles(isDark: boolean) {
     },
     templateName: {
       fontSize: 18,
-      fontWeight: 'bold',
-      color: isDark ? '#fff' : '#222',
+      fontWeight: "bold",
+      color: isDark ? "#fff" : "#222",
       marginBottom: 8,
     },
     selectedLabel: {
       color: primary,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       marginTop: 8,
     },
     templateDesc: {
       fontSize: 14,
-      color: isDark ? '#aaa' : '#555',
-      textAlign: 'center',
+      color: isDark ? "#aaa" : "#555",
+      textAlign: "center",
       marginBottom: 12,
     },
     input: {
-      width: '100%',
+      width: "100%",
       padding: 12,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: isDark ? '#555' : '#CCC',
-      backgroundColor: isDark ? '#333' : '#FFF',
-      color: isDark ? '#FFF' : '#222',
+      borderColor: isDark ? "#555" : "#CCC",
+      backgroundColor: isDark ? "#333" : "#FFF",
+      color: isDark ? "#FFF" : "#222",
       fontSize: 16,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     label: {
       fontSize: 16,
-      fontWeight: '600',
-      color: isDark ? '#AAA' : '#555',
+      fontWeight: "600",
+      color: isDark ? "#AAA" : "#555",
       marginBottom: 8,
     },
   });
@@ -282,7 +289,9 @@ type UseWizardFormReturn = {
   skills: string[];
   setSkills: React.Dispatch<React.SetStateAction<string[]>>;
   errors: AboutMeErrors | ExperienceErrors | EducationErrors;
-  setErrors: React.Dispatch<React.SetStateAction<AboutMeErrors | ExperienceErrors | EducationErrors>>;
+  setErrors: React.Dispatch<
+    React.SetStateAction<AboutMeErrors | ExperienceErrors | EducationErrors>
+  >;
   errorMsg: string;
   setErrorMsg: React.Dispatch<React.SetStateAction<string>>;
   selectedTemplate: string;
@@ -302,34 +311,57 @@ const useWizardForm = (): UseWizardFormReturn => {
   const [step, setStep] = useState<number>(0);
   const [fadeAnim] = useState<Animated.Value>(() => new Animated.Value(1));
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   const styles = getStyles(isDark);
 
-  const [aboutMe, setAboutMe] = useState<AboutMe>({ summary: '', image: '', imageBase64: '' });
-  const [contact, setContact] = useState<Contact>({ name: '', lastname: '', phone: '', email: '' });
-  const [address, setAddress] = useState<Address>({ countryName: '', cityName: '', address1: '', address2: '' });
+  const [aboutMe, setAboutMe] = useState<AboutMe>({
+    summary: "",
+    image: "",
+    imageBase64: "",
+  });
+  const [contact, setContact] = useState<Contact>({
+    name: "",
+    lastname: "",
+    phone: "",
+    email: "",
+  });
+  const [address, setAddress] = useState<Address>({
+    countryName: "",
+    cityName: "",
+    address1: "",
+    address2: "",
+  });
   const [languages, setLanguages] = useState<Language[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
-  const [errors, setErrors] = useState<AboutMeErrors | ExperienceErrors | EducationErrors>({});
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('classic');
+  const [errors, setErrors] = useState<
+    AboutMeErrors | ExperienceErrors | EducationErrors
+  >({});
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("classic");
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const validateStep = (): boolean => {
-    setErrorMsg('');
+    setErrorMsg("");
     let valid = true;
     if (step === 0) {
-      if (!aboutMe.summary || aboutMe.summary.trim() === '') valid = false;
-      if (!contact.name || !contact.lastname || !contact.phone || !contact.email) valid = false;
-      if (!address.countryName || !address.cityName || !address.address1) valid = false;
-      if (!valid) setErrorMsg('Please fill all required fields.');
+      if (!aboutMe.summary || aboutMe.summary.trim() === "") valid = false;
+      if (
+        !contact.name ||
+        !contact.lastname ||
+        !contact.phone ||
+        !contact.email
+      )
+        valid = false;
+      if (!address.countryName || !address.cityName || !address.address1)
+        valid = false;
+      if (!valid) setErrorMsg("Please fill all required fields.");
       return valid;
     }
     if (step === 1) {
       if (languages.length === 0 || skills.length === 0) {
-        setErrorMsg('Please add at least one language and one skill.');
+        setErrorMsg("Please add at least one language and one skill.");
         return false;
       }
     }
@@ -339,7 +371,7 @@ const useWizardForm = (): UseWizardFormReturn => {
   const canGoNext = (): boolean => {
     if (step === 0) {
       return !!(
-        aboutMe.summary.trim() !== '' &&
+        aboutMe.summary.trim() !== "" &&
         contact.name &&
         contact.lastname &&
         contact.phone &&
@@ -376,17 +408,17 @@ const useWizardForm = (): UseWizardFormReturn => {
     animateTo(step + 1);
   };
   const handleBack = () => {
-    setErrorMsg('');
+    setErrorMsg("");
     animateTo(step - 1);
   };
 
   const renderTemplateHtml = (imageBase64?: string): string => {
-    let html = '';
-    let imageHtml = '';
+    let html = "";
+    let imageHtml = "";
     if (imageBase64) {
       imageHtml = `<div style='text-align:center;margin-bottom:16px;'><img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;object-fit:cover;background:#eee;'/></div>`;
     }
-    if (selectedTemplate === 'classic') {
+    if (selectedTemplate === "classic") {
       html = `
         <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fff;border-radius:12px;border:1px solid #e0e0e0;overflow:hidden;">
           ${imageHtml}
@@ -405,7 +437,7 @@ const useWizardForm = (): UseWizardFormReturn => {
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Skills</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                  ${skills.map(skill => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join('')}
+                  ${skills.map((skill) => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join("")}
                 </div>
               </div>
             </div>
@@ -416,29 +448,37 @@ const useWizardForm = (): UseWizardFormReturn => {
               </div>
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Experience</div>
-                ${experience.map(exp => `
+                ${experience
+                  .map(
+                    (exp) => `
                   <div style='margin-bottom:12px;'>
                     <div style='font-size:16px;font-weight:600;color:#333;'>${exp.jobTitle}</div>
                     <div style='font-size:14px;color:#777;margin-bottom:4px;'>${exp.company} | ${exp.startDate} – ${exp.endDate}</div>
                     <div style='font-size:14px;color:#555;line-height:20px;'>${exp.description}</div>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Education</div>
-                ${education.map(edu => `
+                ${education
+                  .map(
+                    (edu) => `
                   <div style='margin-bottom:12px;'>
                     <div style='font-size:16px;font-weight:600;color:#333;'>${edu.degree}</div>
                     <div style='font-size:14px;color:#777;margin-bottom:4px;'>${edu.school} | ${edu.startDate} – ${edu.endDate}</div>
                     <div style='font-size:14px;color:#555;line-height:20px;'>${edu.description}</div>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
             </div>
           </div>
         </div>
       `;
-    } else if (selectedTemplate === 'modern') {
+    } else if (selectedTemplate === "modern") {
       html = `
         <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#f7f9fa;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;display:flex;flex-direction:row;">
           <div style="width:16px;background:#1976D2;"></div>
@@ -452,28 +492,36 @@ const useWizardForm = (): UseWizardFormReturn => {
             </div>
             <div style="margin-bottom:18px;">
               <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Experience</div>
-              ${experience.map(exp => `
+              ${experience
+                .map(
+                  (exp) => `
                 <div style='margin-bottom:10px;'>
                   <div style='font-size:15px;font-weight:600;color:#333;'>${exp.jobTitle} <span style='color:#1976D2;font-weight:bold;'>@</span> ${exp.company}</div>
                   <div style='font-size:13px;color:#888;margin-bottom:2px;'>${exp.startDate} - ${exp.endDate}</div>
                   <div style='font-size:14px;color:#222;'>${exp.description}</div>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
             <div style="margin-bottom:18px;">
               <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Education</div>
-              ${education.map(edu => `
+              ${education
+                .map(
+                  (edu) => `
                 <div style='margin-bottom:10px;'>
                   <div style='font-size:15px;font-weight:600;color:#333;'>${edu.degree}, ${edu.school}</div>
                   <div style='font-size:13px;color:#888;margin-bottom:2px;'>${edu.startDate} - ${edu.endDate}</div>
                   <div style='font-size:14px;color:#222;'>${edu.description}</div>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
             <div style="margin-bottom:18px;">
               <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Skills</div>
               <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
-                ${skills.map(skill => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join('')}
+                ${skills.map((skill) => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join("")}
               </div>
             </div>
           </div>
@@ -485,7 +533,7 @@ const useWizardForm = (): UseWizardFormReturn => {
           <!-- Header -->
           <div style='display:flex;flex-direction:row;align-items:center;background:#3DF8C8;padding:24px;'>
             <div style='width:100px;height:100px;margin-right:24px;'>
-              ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;background:#EEE;'/>` : ''}
+              ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;background:#EEE;'/>` : ""}
             </div>
             <div style='flex:1;'>
               <div style='font-size:26px;font-weight:700;color:#000;'>${contact.name} ${contact.lastname}</div>
@@ -499,9 +547,9 @@ const useWizardForm = (): UseWizardFormReturn => {
             <!-- Sidebar -->
             <div style='width:120px;'>
               <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;'>Skills</div>
-              ${skills.map(s => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${s}</div>`).join('')}
+              ${skills.map((s) => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${s}</div>`).join("")}
               <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;margin-top:24px;'>Languages</div>
-              ${languages.map(l => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l.name} (${l.level})</div>`).join('')}
+              ${languages.map((l) => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l.name} (${l.level})</div>`).join("")}
             </div>
             <!-- Main -->
             <div style='flex:1;padding-left:32px;'>
@@ -511,23 +559,31 @@ const useWizardForm = (): UseWizardFormReturn => {
               </div>
               <div style='margin-bottom:28px;'>
                 <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Employment History</div>
-                ${experience.map(exp => `
+                ${experience
+                  .map(
+                    (exp) => `
                   <div style='margin-bottom:16px;'>
                     <div style='font-size:14px;font-weight:500;color:#444;'>${exp.jobTitle} at ${exp.company}</div>
                     <div style='font-size:12px;color:#888;margin-bottom:4px;'>${exp.startDate} – ${exp.endDate}</div>
                     <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${exp.description}</div>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
               <div style='margin-bottom:28px;'>
                 <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Education</div>
-                ${education.map(edu => `
+                ${education
+                  .map(
+                    (edu) => `
                   <div style='margin-bottom:16px;'>
                     <div style='font-size:14px;font-weight:500;color:#444;'>${edu.degree}, ${edu.school}</div>
                     <div style='font-size:12px;color:#888;margin-bottom:4px;'>${edu.startDate} – ${edu.endDate}</div>
                     <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${edu.description}</div>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
             </div>
           </div>
@@ -541,27 +597,30 @@ const useWizardForm = (): UseWizardFormReturn => {
     let imageBase64 = aboutMe.imageBase64;
     if (!imageBase64 && aboutMe.image) {
       try {
-        imageBase64 = await RNFS.readFile(aboutMe.image, 'base64');
+        imageBase64 = await RNFS.readFile(aboutMe.image, "base64");
       } catch (e) {}
     }
     try {
       const html = renderTemplateHtml(imageBase64);
-      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(/\s+/g, '_');
+      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(
+        /\s+/g,
+        "_",
+      );
       const file = await RNHTMLtoPDF.convert({
         html,
         fileName: safeName,
-        directory: 'Documents',
+        directory: "Documents",
       });
       let destPath = file.filePath;
-      if (!destPath) throw new Error('PDF file path not found');
-      if (Platform.OS === 'android') {
+      if (!destPath) throw new Error("PDF file path not found");
+      if (Platform.OS === "android") {
         const downloadDir = `${RNFS.DownloadDirectoryPath}/${safeName}.pdf`;
         await RNFS.moveFile(destPath, downloadDir);
         destPath = downloadDir;
       }
-      Alert.alert('Success', `CV PDF saved to: ${destPath}`);
+      Alert.alert("Success", `CV PDF saved to: ${destPath}`);
     } catch (e) {
-      Alert.alert('Error', 'Failed to generate or save PDF.');
+      Alert.alert("Error", "Failed to generate or save PDF.");
     }
   };
 
@@ -607,4 +666,4 @@ const useWizardForm = (): UseWizardFormReturn => {
 export default useWizardForm;
 
 // Add module declaration for react-native-html-to-pdf if needed
-// declare module 'react-native-html-to-pdf'; 
+// declare module 'react-native-html-to-pdf';

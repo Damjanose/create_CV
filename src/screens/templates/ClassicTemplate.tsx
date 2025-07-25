@@ -1,15 +1,15 @@
 // ClassicTemplate.tsx
-import React from 'react';
+import React from "react";
 import {
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
   Image,
-  TouchableOpacity,
   Linking,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface LinkItem {
   label: string;
@@ -97,7 +97,7 @@ const ClassicTemplate: React.FC<Props> = ({
           source={
             imageUri
               ? { uri: imageUri }
-              : require('../../assets/images/user.png')
+              : require("../../assets/images/user.png")
           }
           style={styles.avatar}
         />
@@ -108,10 +108,7 @@ const ClassicTemplate: React.FC<Props> = ({
 
         <Text style={styles.sidebarHeader}>Links</Text>
         {links.map((l, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => Linking.openURL(l.url)}
-          >
+          <TouchableOpacity key={i} onPress={() => Linking.openURL(l.url)}>
             <Text style={[styles.sidebarText, styles.linkText]}>
               {l.label}: {l.url}
             </Text>
@@ -179,9 +176,7 @@ const ClassicTemplate: React.FC<Props> = ({
         ))}
 
         {/* — Education */}
-        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>
-          Education
-        </Text>
+        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>Education</Text>
         <View style={styles.sectionDivider} />
         {education.map((edu, i) => (
           <View key={i} style={styles.timeline}>
@@ -192,9 +187,7 @@ const ClassicTemplate: React.FC<Props> = ({
             </View>
             <View style={styles.timelineCenter}>
               <View style={styles.timelineDot} />
-              {i < education.length - 1 && (
-                <View style={styles.timelineLine} />
-              )}
+              {i < education.length - 1 && <View style={styles.timelineLine} />}
             </View>
             <View style={styles.timelineRight}>
               <Text style={styles.timelineRole}>{edu.degree}</Text>
@@ -208,9 +201,7 @@ const ClassicTemplate: React.FC<Props> = ({
         ))}
 
         {/* — Skills */}
-        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>
-          Skills
-        </Text>
+        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>Skills</Text>
         <View style={styles.sectionDivider} />
         <View style={styles.barGrid}>
           {skills.map((s, i) => (
@@ -219,9 +210,7 @@ const ClassicTemplate: React.FC<Props> = ({
         </View>
 
         {/* — Languages */}
-        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>
-          Languages
-        </Text>
+        <Text style={[styles.sectionHeader, { marginTop: 32 }]}>Languages</Text>
         <View style={styles.sectionDivider} />
         <View style={styles.barGrid}>
           {languages.map((l, i) => (
@@ -234,32 +223,15 @@ const ClassicTemplate: React.FC<Props> = ({
 );
 
 // — CONTACT ROW
-const ContactRow = ({
-  icon,
-  text,
-}: {
-  icon: string;
-  text: string;
-}) => (
+const ContactRow = ({ icon, text }: { icon: string; text: string }) => (
   <View style={styles.contactRow}>
-    <Icon
-      name={icon}
-      size={16}
-      color="#333"
-      style={styles.contactIcon}
-    />
+    <Icon name={icon} size={16} color="#333" style={styles.contactIcon} />
     <Text style={styles.contactText}>{text}</Text>
   </View>
 );
 
 // — HORIZONTAL BAR (for Skills & Languages)
-const Bar = ({
-  label,
-  level = 1,
-}: {
-  label: string;
-  level?: number;
-}) => (
+const Bar = ({ label, level = 1 }: { label: string; level?: number }) => (
   <View style={styles.barWrapper}>
     <Text style={styles.barLabel}>{label}</Text>
     <View style={styles.barBackground}>
@@ -270,45 +242,45 @@ const Bar = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#FFF' },
-  row: { flexDirection: 'row' },
+  container: { flexGrow: 1, backgroundColor: "#FFF" },
+  row: { flexDirection: "row" },
 
   // Sidebar
   sidebar: {
     width: 200,
-    backgroundColor: '#424242',
+    backgroundColor: "#424242",
     padding: 20,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#EEE',
-    alignSelf: 'center',
+    backgroundColor: "#EEE",
+    alignSelf: "center",
     marginBottom: 24,
   },
   sidebarHeader: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 8,
   },
   sidebarText: {
-    color: '#DDD',
+    color: "#DDD",
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 8,
   },
   linkText: {
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
   divider: {
     height: 1,
-    backgroundColor: '#555',
+    backgroundColor: "#555",
     marginVertical: 16,
   },
   sidebarBullet: {
-    color: '#DDD',
+    color: "#DDD",
     fontSize: 12,
     marginBottom: 6,
   },
@@ -319,25 +291,25 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   mainName: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#222',
+    fontWeight: "700",
+    color: "#222",
   },
   mainTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: "500",
+    color: "#666",
     marginTop: 4,
   },
   contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
   contactIcon: {
@@ -345,24 +317,24 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 12,
-    color: '#333',
+    color: "#333",
   },
 
   sectionHeader: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#222',
+    fontWeight: "600",
+    color: "#222",
     marginBottom: 8,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: '#CCC',
+    backgroundColor: "#CCC",
     marginBottom: 16,
   },
 
   // Timeline
   timeline: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 24,
   },
   timelineLeft: {
@@ -370,33 +342,33 @@ const styles = StyleSheet.create({
   },
   timelineCompany: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   timelineLocation: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
     marginVertical: 2,
   },
   timelineDate: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
   timelineCenter: {
     width: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   timelineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#555',
+    backgroundColor: "#555",
     marginVertical: 2,
   },
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#CCC',
+    backgroundColor: "#CCC",
   },
   timelineRight: {
     flex: 1,
@@ -404,41 +376,41 @@ const styles = StyleSheet.create({
   },
   timelineRole: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 4,
   },
   timelineBullet: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
     marginBottom: 4,
   },
 
   // Bars for Skills & Languages
   barGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   barWrapper: {
-    width: '48%',
+    width: "48%",
     marginBottom: 16,
   },
   barLabel: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
     marginBottom: 4,
   },
   barBackground: {
-    flexDirection: 'row',
+    flexDirection: "row",
     height: 4,
-    backgroundColor: '#EEE',
+    backgroundColor: "#EEE",
     borderRadius: 2,
   },
   barFill: {
     height: 4,
-    backgroundColor: '#555',
+    backgroundColor: "#555",
     borderRadius: 2,
   },
 });

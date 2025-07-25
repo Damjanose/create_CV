@@ -1,5 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import React from "react";
+import {
+  StyleProp,
+  Text,
+  TextInput,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
 interface Education {
   school: string;
@@ -25,13 +33,21 @@ const EducationStep: React.FC<EducationStepProps> = ({
   <View style={{ padding: 24 }}>
     <Text style={styles.title}>Education</Text>
     {education.map((edu, idx) => (
-      <View key={idx} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#EEE', paddingBottom: 16 }}>
+      <View
+        key={idx}
+        style={{
+          marginBottom: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: isDark ? "#333" : "#EEE",
+          paddingBottom: 16,
+        }}
+      >
         <Text style={styles.label}>School</Text>
         <TextInput
           style={styles.input}
           placeholder="School"
           value={edu.school}
-          onChangeText={school => {
+          onChangeText={(school) => {
             setEducation((prev) => {
               const newEdu = [...prev];
               newEdu[idx] = { ...newEdu[idx], school };
@@ -44,7 +60,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
           style={styles.input}
           placeholder="Degree"
           value={edu.degree}
-          onChangeText={degree => {
+          onChangeText={(degree) => {
             setEducation((prev) => {
               const newEdu = [...prev];
               newEdu[idx] = { ...newEdu[idx], degree };
@@ -57,7 +73,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
           style={styles.input}
           placeholder="Start Date"
           value={edu.startDate}
-          onChangeText={startDate => {
+          onChangeText={(startDate) => {
             setEducation((prev) => {
               const newEdu = [...prev];
               newEdu[idx] = { ...newEdu[idx], startDate };
@@ -70,7 +86,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
           style={styles.input}
           placeholder="End Date"
           value={edu.endDate}
-          onChangeText={endDate => {
+          onChangeText={(endDate) => {
             setEducation((prev) => {
               const newEdu = [...prev];
               newEdu[idx] = { ...newEdu[idx], endDate };
@@ -83,7 +99,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
           style={[styles.input, { height: 80 }]}
           placeholder="Description"
           value={edu.description}
-          onChangeText={description => {
+          onChangeText={(description) => {
             setEducation((prev) => {
               const newEdu = [...prev];
               newEdu[idx] = { ...newEdu[idx], description };
@@ -93,20 +109,47 @@ const EducationStep: React.FC<EducationStepProps> = ({
           multiline
         />
         <TouchableOpacity
-          style={{ marginTop: 8, alignSelf: 'flex-end', backgroundColor: '#E53935', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-          onPress={() => setEducation((prev) => prev.filter((_, i) => i !== idx))}
+          style={{
+            marginTop: 8,
+            alignSelf: "flex-end",
+            backgroundColor: "#E53935",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
+          }}
+          onPress={() =>
+            setEducation((prev) => prev.filter((_, i) => i !== idx))
+          }
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>Remove</Text>
         </TouchableOpacity>
       </View>
     ))}
     <TouchableOpacity
-      style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
-      onPress={() => setEducation((prev) => [...prev, { school: '', degree: '', startDate: '', endDate: '', description: '' }])}
+      style={{
+        marginTop: 8,
+        alignSelf: "flex-start",
+        backgroundColor: isDark ? "#4F8EF7" : "#1976D2",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+      }}
+      onPress={() =>
+        setEducation((prev) => [
+          ...prev,
+          {
+            school: "",
+            degree: "",
+            startDate: "",
+            endDate: "",
+            description: "",
+          },
+        ])
+      }
     >
-      <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Education</Text>
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>+ Add Education</Text>
     </TouchableOpacity>
   </View>
 );
 
-export default EducationStep; 
+export default EducationStep;
