@@ -1,17 +1,11 @@
 // ModernTemplate.tsx
-import React from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  Image,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import React from "react";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface AboutMe {
-  name: string;            // e.g. "John Doe"
-  role: string;            // e.g. "Financial Analyst"
+  name: string; // e.g. "John Doe"
+  role: string; // e.g. "Financial Analyst"
   summary: string;
   email: string;
   location: string;
@@ -21,26 +15,26 @@ interface AboutMe {
 
 interface Language {
   label: string;
-  level: number;  // 0–1
+  level: number; // 0–1
 }
 
 interface EducationEntry {
-  period: string;     // e.g. "20XX–20XX"
-  location: string;   // e.g. "NY-USA"
-  degree: string;     // e.g. "Master of Business Administration"
-  school: string;     // e.g. "NYU"
+  period: string; // e.g. "20XX–20XX"
+  location: string; // e.g. "NY-USA"
+  degree: string; // e.g. "Master of Business Administration"
+  school: string; // e.g. "NYU"
 }
 
 interface SkillSections {
-  hard: string[];     // e.g. ["Financial Modeling","Excel",…]
-  soft: string[];     // e.g. ["Analytical thinking","Communication",…]
+  hard: string[]; // e.g. ["Financial Modeling","Excel",…]
+  soft: string[]; // e.g. ["Analytical thinking","Communication",…]
 }
 
 interface ExperienceEntry {
-  period: string;     // e.g. "Nov. 20XX – Jul. 20XX"
-  company: string;    // e.g. "ABC CORPORATION"
-  role: string;       // e.g. "Senior Financial Analyst"
-  bullets: string[];  // each bullet item
+  period: string; // e.g. "Nov. 20XX – Jul. 20XX"
+  company: string; // e.g. "ABC CORPORATION"
+  role: string; // e.g. "Senior Financial Analyst"
+  bullets: string[]; // each bullet item
 }
 
 interface Props {
@@ -75,13 +69,12 @@ const ModernTemplate: React.FC<Props> = ({
   address,
 }) => {
   // split name into first + last
-  const parts = aboutMe.name.split(' ');
+  const parts = aboutMe.name.split(" ");
   const first = parts.shift()!;
-  const last = parts.join(' ');
-  
+  const last = parts.join(" ");
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      
       {/* Top: name/subtitle/photo */}
       <View style={styles.topRow}>
         <View style={styles.nameBlock}>
@@ -96,7 +89,7 @@ const ModernTemplate: React.FC<Props> = ({
           source={
             aboutMe.imageUri
               ? { uri: aboutMe.imageUri }
-              : require('../../assets/images/user.png')
+              : require("../../assets/images/user.png")
           }
           style={styles.avatar}
         />
@@ -154,11 +147,11 @@ const ModernTemplate: React.FC<Props> = ({
       <Text style={styles.sectionHeader}>Skills</Text>
       <Text style={styles.skillLine}>
         <Text style={styles.skillLabel}>Hard: </Text>
-        <Text style={styles.skillText}>{skills.hard.join(', ')}</Text>
+        <Text style={styles.skillText}>{skills.hard.join(", ")}</Text>
       </Text>
       <Text style={styles.skillLine}>
         <Text style={styles.skillLabel}>Soft: </Text>
-        <Text style={styles.skillText}>{skills.soft.join(', ')}</Text>
+        <Text style={styles.skillText}>{skills.soft.join(", ")}</Text>
       </Text>
 
       {/* Professional Experience */}
@@ -166,7 +159,7 @@ const ModernTemplate: React.FC<Props> = ({
       {experience.map((exp, i) => (
         <View key={i} style={styles.expBlock}>
           <Text style={styles.expLine}>
-            <Text style={styles.expPeriod}>{exp.period}</Text>{' '}
+            <Text style={styles.expPeriod}>{exp.period}</Text>{" "}
             <Text style={styles.expCompany}>{exp.company}</Text>
           </Text>
           <Text style={styles.expRole}>{exp.role}</Text>
@@ -177,7 +170,6 @@ const ModernTemplate: React.FC<Props> = ({
           ))}
         </View>
       ))}
-
     </ScrollView>
   );
 };
@@ -185,10 +177,10 @@ const ModernTemplate: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   topRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
   },
   nameBlock: {
@@ -196,30 +188,30 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: 4,
   },
   nameFirst: {
     fontSize: 28,
-    fontFamily: 'serif',
-    color: '#666',
+    fontFamily: "serif",
+    color: "#666",
   },
   nameLast: {
     fontSize: 28,
-    fontFamily: 'serif',
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: "serif",
+    fontWeight: "700",
+    color: "#000",
   },
   role: {
-    fontStyle: 'italic',
+    fontStyle: "italic",
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     marginBottom: 8,
   },
   summary: {
     fontSize: 13,
-    color: '#222',
+    color: "#222",
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -227,43 +219,43 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
   },
   contactRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginBottom: 12,
   },
   contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 12,
   },
   contactText: {
     fontSize: 12,
     marginLeft: 4,
-    color: '#333',
+    color: "#333",
   },
   divider: {
     height: 2,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     marginVertical: 12,
   },
   sectionHeader: {
-    backgroundColor: '#DDD',
-    alignSelf: 'stretch',
+    backgroundColor: "#DDD",
+    alignSelf: "stretch",
     paddingVertical: 4,
     paddingHorizontal: 8,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 16,
     marginBottom: 8,
   },
 
   /* Languages */
   languagesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   languageItem: {
@@ -273,22 +265,22 @@ const styles = StyleSheet.create({
   languageLabel: {
     fontSize: 12,
     marginBottom: 4,
-    color: '#333',
+    color: "#333",
   },
   languageBar: {
-    flexDirection: 'row',
+    flexDirection: "row",
     height: 4,
-    backgroundColor: '#EEE',
+    backgroundColor: "#EEE",
     borderRadius: 2,
   },
   languageBarFill: {
-    backgroundColor: '#333',
+    backgroundColor: "#333",
     borderRadius: 2,
   },
 
   /* Education */
   eduRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   eduLeft: {
@@ -296,12 +288,12 @@ const styles = StyleSheet.create({
   },
   eduPeriod: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   eduLocation: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
   },
   eduRight: {
     flex: 1,
@@ -309,27 +301,27 @@ const styles = StyleSheet.create({
   },
   eduDegree: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
   eduSchool: {
     fontSize: 12,
-    color: '#333',
+    color: "#333",
   },
 
   /* Skills */
   skillLine: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 6,
   },
   skillLabel: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 12,
-    color: '#333',
+    color: "#333",
   },
   skillText: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
   },
 
   /* Experience */
@@ -337,28 +329,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   expLine: {
-    flexDirection: 'row',
+    flexDirection: "row",
     fontSize: 12,
     marginBottom: 4,
   },
   expPeriod: {
     fontSize: 12,
-    color: '#333',
+    color: "#333",
   },
   expCompany: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
   expRole: {
     fontSize: 12,
-    fontStyle: 'italic',
-    color: '#555',
+    fontStyle: "italic",
+    color: "#555",
     marginBottom: 4,
   },
   expBullet: {
     fontSize: 12,
-    color: '#333',
+    color: "#333",
     marginLeft: 8,
     marginBottom: 2,
   },
