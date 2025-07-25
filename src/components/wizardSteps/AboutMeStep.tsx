@@ -68,13 +68,14 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       placeholder="First Name"
       value={contact.name}
       onChangeText={name => setContact((prev: any) => ({ ...prev, name }))}
-    />
+      placeholderTextColor={'#ffffff3b'}    />
     <Text style={styles.label}>Last Name</Text>
     <TextInput
       style={styles.input}
       placeholder="Last Name"
       value={contact.lastname}
       onChangeText={lastname => setContact((prev: any) => ({ ...prev, lastname }))}
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Phone</Text>
     <TextInput
@@ -83,6 +84,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       value={contact.phone}
       onChangeText={phone => setContact((prev: any) => ({ ...prev, phone }))}
       keyboardType="phone-pad"
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Email</Text>
     <TextInput
@@ -92,6 +94,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       onChangeText={email => setContact((prev: any) => ({ ...prev, email }))}
       keyboardType="email-address"
       autoCapitalize="none"
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Country</Text>
     <TextInput
@@ -99,6 +102,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       placeholder="Country"
       value={address.countryName}
       onChangeText={countryName => setAddress((prev: any) => ({ ...prev, countryName }))}
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>City</Text>
     <TextInput
@@ -106,6 +110,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       placeholder="City"
       value={address.cityName}
       onChangeText={cityName => setAddress((prev: any) => ({ ...prev, cityName }))}
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Address Line 1</Text>
     <TextInput
@@ -113,6 +118,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       placeholder="Address Line 1"
       value={address.address1}
       onChangeText={address1 => setAddress((prev: any) => ({ ...prev, address1 }))}
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Address Line 2 (optional)</Text>
     <TextInput
@@ -120,6 +126,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       placeholder="Address Line 2 (optional)"
       value={address.address2}
       onChangeText={address2 => setAddress((prev: any) => ({ ...prev, address2 }))}
+      placeholderTextColor={'#ffffff3b'}
     />
     <Text style={styles.label}>Summary</Text>
     <TextInput
@@ -128,6 +135,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
       value={aboutMe.summary}
       onChangeText={summary => setAboutMe((prev: any) => ({ ...prev, summary }))}
       multiline
+      placeholderTextColor={'#ffffff3b'}
     />
   </View>
 );

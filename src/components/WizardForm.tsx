@@ -5,26 +5,15 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  useColorScheme,
   Animated,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   TextInput,
-  Image,
 } from 'react-native';
 
-// @ts-ignore: No types for react-native-html-to-pdf
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
-import AboutMeScreen from '../screens/AboutMeScreen';
-import ExperienceScreen from '../screens/ExperienceScreen';
-import EducationScreen from '../screens/EducationScreen';
-import SkillsScreen from '../screens/SkillsScreen';
-import ReviewGenerateScreen from '../screens/ReviewGenerateScreen';
-import TemplateSelectScreen from '../screens/TemplateSelectScreen';
 import ClassicTemplate from '../screens/templates/ClassicTemplate';
 import ModernTemplate from '../screens/templates/ModernTemplate';
 import MinimalTemplate from '../screens/templates/MinimalTemplate';
@@ -43,56 +32,6 @@ const stepLabels = [
 ];
 const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
 
-interface Contact {
-  name: string;
-  lastname: string;
-  phone: string;
-  email: string;
-}
-interface Address {
-  countryName: string;
-  cityName: string;
-  address1: string;
-  address2: string;
-}
-interface Language {
-  name: string;
-  level: number;
-}
-interface AboutMe {
-  summary: string;
-  image?: string;
-  imageBase64?: string;
-}
-
-interface Experience {
-  jobTitle: string;
-  company: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
-interface Education {
-  school: string;
-  degree: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
-interface AboutMeErrors {
-  [key: string]: boolean;
-}
-
-interface ExperienceErrors {
-  [index: number]: Partial<Record<keyof Experience, boolean>>;
-}
-
-interface EducationErrors {
-  [index: number]: Partial<Record<keyof Education, boolean>>;
-}
-
 interface Template {
   id: string;
   name: string;
@@ -108,9 +47,7 @@ const TEMPLATES: Template[] = [
 const WizardForm = () => {
   const {
     step,
-    setStep,
     fadeAnim,
-    colorScheme,
     isDark,
     styles,
     aboutMe,
@@ -127,24 +64,15 @@ const WizardForm = () => {
     setEducation,
     skills,
     setSkills,
-    errors,
-    setErrors,
     errorMsg,
-    setErrorMsg,
     selectedTemplate,
     setSelectedTemplate,
-    showPreview,
-    setShowPreview,
-    validateStep,
     canGoNext,
-    animateTo,
     handleNext,
     handleBack,
-    renderTemplateHtml,
     handleDownloadPDF,
   } = useWizardForm();
 
-  // Image upload/camera logic for AboutMeStep
   const handleLaunchImageLibrary = async () => {
     const response = await launchImageLibrary({ mediaType: 'photo', quality: 0.7 });
     if (response.assets && response.assets[0]?.uri) {
@@ -532,7 +460,6 @@ const WizardForm = () => {
             ) : null}
           </View>
         </Animated.View>
-        {/* Stepper at the bottom, numbers only */}
         <View style={styles.stepperContainerBottom}>
           {steps.map((idx) => {
             const done = idx < step;
