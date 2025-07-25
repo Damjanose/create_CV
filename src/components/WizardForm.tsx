@@ -29,7 +29,6 @@ import ClassicTemplate from '../screens/templates/ClassicTemplate';
 import ModernTemplate from '../screens/templates/ModernTemplate';
 import MinimalTemplate from '../screens/templates/MinimalTemplate';
 
-// Use a separate stepLabels array for display, but keep step as a number
 const stepLabels = [
   'About Me, Contact & Address',
   'Languages & Skills',
@@ -40,7 +39,6 @@ const stepLabels = [
 ];
 const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
 
-// Type definitions for form data
 interface Contact {
   name: string;
   lastname: string;
@@ -57,7 +55,6 @@ interface Language {
   name: string;
   level: number;
 }
-// Remove cvName from AboutMe
 interface AboutMe {
   summary: string;
   image?: string;
@@ -80,7 +77,6 @@ interface Education {
   description: string;
 }
 
-// Error types
 interface AboutMeErrors {
   [key: string]: boolean;
 }
@@ -93,7 +89,6 @@ interface EducationErrors {
   [index: number]: Partial<Record<keyof Education, boolean>>;
 }
 
-// Template type and list
 interface Template {
   id: string;
   name: string;
@@ -113,7 +108,6 @@ const WizardForm = () => {
   const isDark = colorScheme === 'dark';
   const styles = getStyles(isDark);
 
-  // Replace these with your real state/hooks
   const [aboutMe, setAboutMe] = useState<AboutMe>({
     summary: '',
     image: '',
@@ -135,13 +129,11 @@ const WizardForm = () => {
   const [experience, setExperience] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
-  // errors can be AboutMeErrors | ExperienceErrors | EducationErrors
   const [errors, setErrors] = useState<AboutMeErrors | ExperienceErrors | EducationErrors>({});
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('classic');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Validation per step
   const validateStep = () => {
     setErrorMsg('');
     let valid = true;
@@ -197,7 +189,6 @@ const WizardForm = () => {
     animateTo(step - 1);
   };
 
-  // Helper to render the selected template as HTML
   const renderTemplateHtml = (imageBase64?: string) => {
     let html = '';
     let imageHtml = '';
@@ -298,7 +289,6 @@ const WizardForm = () => {
         </div>
       `;
     } else {
-      // Minimal template: match MinimalTemplate.tsx design
       html = `
         <div style="max-width:900px;margin:auto;font-family:sans-serif;background:#FFF;border-radius:16px;border:1px solid #f0f0f0;overflow:hidden;">
           <!-- Header -->
@@ -358,12 +348,10 @@ const WizardForm = () => {
 
   const handleDownloadPDF = async () => {
     let imageBase64 = aboutMe.imageBase64;
-    // If imageBase64 is not present but image URI is, try to convert it
     if (!imageBase64 && aboutMe.image) {
       try {
         imageBase64 = await RNFS.readFile(aboutMe.image, 'base64');
       } catch (e) {
-        // ignore, fallback to no image
       }
     }
     try {
@@ -374,7 +362,6 @@ const WizardForm = () => {
         fileName: safeName,
         directory: 'Documents',
       });
-      // Optionally move to Download folder (Android)
       let destPath = file.filePath;
       if (!destPath) throw new Error('PDF file path not found');
       if (Platform.OS === 'android') {
@@ -391,9 +378,8 @@ const WizardForm = () => {
   const renderStepContent = () => {
     switch (step) {
       case 0:
-        // About Me, Contact & Address
         return (
-          <View style={{ padding: 24 }}>
+          <View >
             <Text style={styles.title}>About Me, Contact & Address</Text>
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
               <Image
@@ -502,7 +488,6 @@ const WizardForm = () => {
           </View>
         );
       case 1:
-        // Languages & Skills
         return (
           <View style={{ padding: 24 }}>
             <Text style={styles.title}>Languages & Skills</Text>
@@ -570,39 +555,189 @@ const WizardForm = () => {
         );
       case 2:
         return (
-          <ExperienceScreen
-            data={experience}
-            setData={setExperience}
-            errors={errors}
-            setErrors={setErrors}
-            errorMsg={errorMsg}
-            setErrorMsg={setErrorMsg}
-            isWizard
-          />
+          <View style={{ padding: 24 }}>
+            <Text style={styles.title}>Experience</Text>
+            {experience.map((exp, idx) => (
+              <View key={idx} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#EEE', paddingBottom: 16 }}>
+                <Text style={styles.label}>Job Title</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Job Title"
+                  value={exp.jobTitle}
+                  onChangeText={jobTitle => {
+                    const newExp = [...experience];
+                    newExp[idx] = { ...newExp[idx], jobTitle };
+                    setExperience(newExp);
+                  }}
+                />
+                <Text style={styles.label}>Company</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Company"
+                  value={exp.company}
+                  onChangeText={company => {
+                    const newExp = [...experience];
+                    newExp[idx] = { ...newExp[idx], company };
+                    setExperience(newExp);
+                  }}
+                />
+                <Text style={styles.label}>Start Date</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Start Date"
+                  value={exp.startDate}
+                  onChangeText={startDate => {
+                    const newExp = [...experience];
+                    newExp[idx] = { ...newExp[idx], startDate };
+                    setExperience(newExp);
+                  }}
+                />
+                <Text style={styles.label}>End Date</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="End Date"
+                  value={exp.endDate}
+                  onChangeText={endDate => {
+                    const newExp = [...experience];
+                    newExp[idx] = { ...newExp[idx], endDate };
+                    setExperience(newExp);
+                  }}
+                />
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  placeholder="Description"
+                  value={exp.description}
+                  onChangeText={description => {
+                    const newExp = [...experience];
+                    newExp[idx] = { ...newExp[idx], description };
+                    setExperience(newExp);
+                  }}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={{ marginTop: 8, alignSelf: 'flex-end', backgroundColor: '#E53935', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+                  onPress={() => setExperience(experience.filter((_, i) => i !== idx))}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+              onPress={() => setExperience([...experience, { jobTitle: '', company: '', startDate: '', endDate: '', description: '' }])}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Experience</Text>
+            </TouchableOpacity>
+          </View>
         );
       case 3:
         return (
-          <EducationScreen
-            data={education}
-            setData={setEducation}
-            errors={errors}
-            setErrors={setErrors}
-            errorMsg={errorMsg}
-            setErrorMsg={setErrorMsg}
-            isWizard
-          />
+          <View style={{ padding: 24 }}>
+            <Text style={styles.title}>Education</Text>
+            {education.map((edu, idx) => (
+              <View key={idx} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#EEE', paddingBottom: 16 }}>
+                <Text style={styles.label}>School</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="School"
+                  value={edu.school}
+                  onChangeText={school => {
+                    const newEdu = [...education];
+                    newEdu[idx] = { ...newEdu[idx], school };
+                    setEducation(newEdu);
+                  }}
+                />
+                <Text style={styles.label}>Degree</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Degree"
+                  value={edu.degree}
+                  onChangeText={degree => {
+                    const newEdu = [...education];
+                    newEdu[idx] = { ...newEdu[idx], degree };
+                    setEducation(newEdu);
+                  }}
+                />
+                <Text style={styles.label}>Start Date</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Start Date"
+                  value={edu.startDate}
+                  onChangeText={startDate => {
+                    const newEdu = [...education];
+                    newEdu[idx] = { ...newEdu[idx], startDate };
+                    setEducation(newEdu);
+                  }}
+                />
+                <Text style={styles.label}>End Date</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="End Date"
+                  value={edu.endDate}
+                  onChangeText={endDate => {
+                    const newEdu = [...education];
+                    newEdu[idx] = { ...newEdu[idx], endDate };
+                    setEducation(newEdu);
+                  }}
+                />
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  placeholder="Description"
+                  value={edu.description}
+                  onChangeText={description => {
+                    const newEdu = [...education];
+                    newEdu[idx] = { ...newEdu[idx], description };
+                    setEducation(newEdu);
+                  }}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={{ marginTop: 8, alignSelf: 'flex-end', backgroundColor: '#E53935', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+                  onPress={() => setEducation(education.filter((_, i) => i !== idx))}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+              onPress={() => setEducation([...education, { school: '', degree: '', startDate: '', endDate: '', description: '' }])}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Education</Text>
+            </TouchableOpacity>
+          </View>
         );
       case 4:
         return (
-          <TemplateSelectScreen selected={selectedTemplate} setSelected={setSelectedTemplate} isWizard />
+          <View style={{ padding: 24 }}>
+            <Text style={styles.title}>Select Template</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 16 }}>
+              {TEMPLATES.map(template => (
+                <TouchableOpacity
+                  key={template.id}
+                  style={[
+                    styles.templateCard,
+                    selectedTemplate === template.id && styles.selectedTemplate,
+                  ]}
+                  onPress={() => setSelectedTemplate(template.id)}
+                >
+                  <Text style={styles.templateName}>{template.name}</Text>
+                  <Text style={styles.templateDesc}>{template.description}</Text>
+                  {selectedTemplate === template.id && (
+                    <Text style={styles.selectedLabel}>Selected</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         );
       case 5:
-        // Preview step (existing logic)
         let TemplateComponent;
         let templateProps = {};
         if (selectedTemplate === 'classic') {
           TemplateComponent = ClassicTemplate;
-          // Map experience to TimelineEntry[]
           const timelineExperience = experience.map(exp => ({
             company: exp.company,
             location: '',
@@ -611,7 +746,6 @@ const WizardForm = () => {
             position: exp.jobTitle,
             bullets: exp.description ? exp.description.split('\n').filter(Boolean) : [],
           }));
-          // Map education to EduEntry[]
           const timelineEducation = education.map(edu => ({
             institution: edu.school,
             location: '',
@@ -716,7 +850,7 @@ const WizardForm = () => {
                 justifyContent: 'flex-start',
                 alignItems: 'stretch',
                 padding: 0,
-                paddingBottom: 100, // leave space for the button
+                paddingBottom: 100,
               }}
               style={{ flex: 1 }}
             >
@@ -812,7 +946,7 @@ const WizardForm = () => {
                   style={[
                     styles.buttonText,
                     !canGoNext() && styles.textDisabled,
-                  ]}
+]}
                 >
                   Next
                 </Text>
@@ -875,13 +1009,13 @@ const getStyles = (isDark: boolean) => {
       paddingVertical: 24,
     },
     stepperContainer: {
-      display: 'none', // Hide the old stepper
+      display: 'none',
     },
     stepperContainerBottom: {
       flexDirection: 'row',
       alignItems: 'center',
       marginTop: 24,
-      width: '90%',
+      width: '100%',
       maxWidth: 400,
       justifyContent: 'center',
     },
@@ -943,7 +1077,7 @@ const getStyles = (isDark: boolean) => {
       alignItems: 'center',
     },
     title: {
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: '700',
       color: isDark ? '#FFF' : '#222',
       marginBottom: 12,
