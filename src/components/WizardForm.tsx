@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Image,
 } from 'react-native';
 
 import RNFS from 'react-native-fs';
@@ -21,6 +22,8 @@ import useWizardForm from './hooks/useWizardForm';
 import AboutMeStep from './wizardSteps/AboutMeStep';
 import LanguagesSkillsStep from './wizardSteps/LanguagesSkillsStep';
 import ExperienceStep from './wizardSteps/ExperienceStep';
+import EducationStep from './wizardSteps/EducationStep';
+import TemplateSelectStep from './wizardSteps/TemplateSelectStep';
 
 const stepLabels = [
   'About Me, Contact & Address',
@@ -34,14 +37,37 @@ const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
 
 interface Template {
   id: string;
-  name: string;
-  description: string;
+  preview: React.ReactNode;
 }
 
 const TEMPLATES: Template[] = [
-  { id: 'classic', name: 'Classic', description: 'A clean, traditional layout.' },
-  { id: 'modern', name: 'Modern', description: 'A stylish, contemporary look.' },
-  { id: 'minimal', name: 'Minimal', description: 'Simple and elegant.' },
+  {
+    id: 'classic',
+    preview: (
+      <Image
+        source={require('../assets/images/templates/clasictemplate.jpg')}
+        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
+      />
+    ),
+  },
+  {
+    id: 'modern',
+    preview: (
+      <Image
+        source={require('../assets/images/templates/moderntemplate.jpg')}
+        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
+      />
+    ),
+  },
+  {
+    id: 'minimal',
+    preview: (
+      <Image
+        source={require('../assets/images/templates/simpletemplate.png')}
+        style={{ width: 120, height: 80, borderRadius: 8, resizeMode: 'cover' }}
+      />
+    ),
+  },
 ];
 
 const WizardForm = () => {
@@ -131,105 +157,22 @@ const WizardForm = () => {
         );
       case 3:
         return (
-          <View style={{ padding: 24 }}>
-            <Text style={styles.title}>Education</Text>
-            {education.map((edu, idx) => (
-              <View key={idx} style={{ marginBottom: 20, borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#EEE', paddingBottom: 16 }}>
-                <Text style={styles.label}>School</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="School"
-                  value={edu.school}
-                  onChangeText={school => {
-                    const newEdu = [...education];
-                    newEdu[idx] = { ...newEdu[idx], school };
-                    setEducation(newEdu);
-                  }}
-                />
-                <Text style={styles.label}>Degree</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Degree"
-                  value={edu.degree}
-                  onChangeText={degree => {
-                    const newEdu = [...education];
-                    newEdu[idx] = { ...newEdu[idx], degree };
-                    setEducation(newEdu);
-                  }}
-                />
-                <Text style={styles.label}>Start Date</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Start Date"
-                  value={edu.startDate}
-                  onChangeText={startDate => {
-                    const newEdu = [...education];
-                    newEdu[idx] = { ...newEdu[idx], startDate };
-                    setEducation(newEdu);
-                  }}
-                />
-                <Text style={styles.label}>End Date</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="End Date"
-                  value={edu.endDate}
-                  onChangeText={endDate => {
-                    const newEdu = [...education];
-                    newEdu[idx] = { ...newEdu[idx], endDate };
-                    setEducation(newEdu);
-                  }}
-                />
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={[styles.input, { height: 80 }]}
-                  placeholder="Description"
-                  value={edu.description}
-                  onChangeText={description => {
-                    const newEdu = [...education];
-                    newEdu[idx] = { ...newEdu[idx], description };
-                    setEducation(newEdu);
-                  }}
-                  multiline
-                />
-                <TouchableOpacity
-                  style={{ marginTop: 8, alignSelf: 'flex-end', backgroundColor: '#E53935', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-                  onPress={() => setEducation(education.filter((_, i) => i !== idx))}
-                >
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-            <TouchableOpacity
-              style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: isDark ? '#4F8EF7' : '#1976D2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
-              onPress={() => setEducation([...education, { school: '', degree: '', startDate: '', endDate: '', description: '' }])}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Education</Text>
-            </TouchableOpacity>
-          </View>
+          <EducationStep
+            education={education}
+            setEducation={setEducation}
+            styles={styles}
+            isDark={isDark}
+          />
         );
       case 4:
         return (
-          <View style={{ padding: 24 }}>
-            <Text style={styles.title}>Select Template</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 16 }}>
-              {TEMPLATES.map(template => (
-                <TouchableOpacity
-                  key={template.id}
-                  style={[
-                    styles.templateCard,
-                    selectedTemplate === template.id && styles.selectedTemplate,
-                  ]}
-                  onPress={() => setSelectedTemplate(template.id)}
-                >
-                  <Text style={styles.templateName}>{template.name}</Text>
-                  <Text style={styles.templateDesc}>{template.description}</Text>
-                  {selectedTemplate === template.id && (
-                    <Text style={styles.selectedLabel}>Selected</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <TemplateSelectStep
+            templates={TEMPLATES}
+            selectedTemplate={selectedTemplate}
+            setSelectedTemplate={setSelectedTemplate}
+            styles={styles}
+            isDark={isDark}
+          />
         );
       case 5:
         let TemplateComponent;
@@ -315,7 +258,7 @@ const WizardForm = () => {
               email: contact.email,
               phone: contact.phone,
               address: `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`,
-              languages,
+              languages: languages.map(l => l.name),
             },
             experience,
             education,
@@ -354,33 +297,29 @@ const WizardForm = () => {
             >
               <TemplateComponent {...templateProps} />
             </ScrollView>
+            {/* Floating Download Button - OUTSIDE the ScrollView */}
             <View
-              style={{
-                position: 'absolute',
-                right: 20,
-                bottom: 20,
-                zIndex: 10,
-              }}
               pointerEvents="box-none"
+              style={{ position: 'absolute', right: 20, bottom: 20, zIndex: 100 }}
             >
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.buttonPrimary,
-                  {
-                    borderRadius: 32,
-                    width: 64,
-                    height: 64,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    elevation: 6,
-                  },
-                  !selectedTemplate && styles.buttonDisabled,
-                ]}
+                style={{
+                  borderRadius: 32,
+                  width: 64,
+                  height: 64,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  elevation: 8,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.18,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 },
+                  backgroundColor: styles.buttonPrimary.backgroundColor,
+                }}
                 onPress={handleDownloadPDF}
-                disabled={!selectedTemplate}
+                activeOpacity={0.85}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 24 }}>↓</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 28 }}>↓</Text>
               </TouchableOpacity>
             </View>
           </View>

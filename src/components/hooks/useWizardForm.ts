@@ -63,13 +63,6 @@ const stepLabels = [
   'Template',
   'Preview',
 ];
-const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
-
-const TEMPLATES: Template[] = [
-  { id: 'classic', name: 'Classic', description: 'A clean, traditional layout.' },
-  { id: 'modern', name: 'Modern', description: 'A stylish, contemporary look.' },
-  { id: 'minimal', name: 'Minimal', description: 'Simple and elegant.' },
-];
 
 function getStyles(isDark: boolean) {
   const primary = isDark ? '#4F8EF7' : '#1976D2';
