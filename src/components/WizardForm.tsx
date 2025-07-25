@@ -12,6 +12,7 @@ import {
 
 import RNFS from "react-native-fs";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
+import { FloatingAction } from "react-native-floating-action";
 
 import useWizardForm from "./hooks/useWizardForm";
 import AboutMeStep from "./wizardSteps/AboutMeStep";
@@ -20,6 +21,7 @@ import ExperienceStep from "./wizardSteps/ExperienceStep";
 import EducationStep from "./wizardSteps/EducationStep";
 import TemplateSelectStep from "./wizardSteps/TemplateSelectStep";
 import WizardPreviewStep from "./WizardPreviewStep";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const stepLabels = [
   "About Me, Contact & Address",
@@ -99,10 +101,7 @@ const WizardForm = () => {
   } = useWizardForm();
 
   const handleLaunchImageLibrary = async () => {
-    const response = await launchImageLibrary({
-      mediaType: "photo",
-      quality: 0.7,
-    });
+    const response = await launchImageLibrary({ mediaType: "photo", quality: 0.7 });
     if (response.assets && response.assets[0]?.uri) {
       const uri = response.assets[0].uri;
       let base64 = "";
@@ -112,6 +111,7 @@ const WizardForm = () => {
       setAboutMe((prev) => ({ ...prev, image: uri, imageBase64: base64 }));
     }
   };
+
   const handleLaunchCamera = async () => {
     const response = await launchCamera({ mediaType: "photo", quality: 0.7 });
     if (response.assets && response.assets[0]?.uri) {
@@ -192,7 +192,6 @@ const WizardForm = () => {
             skills={skills}
             languages={languages}
             styles={styles}
-            handleDownloadPDF={handleDownloadPDF}
           />
         );
       default:
@@ -210,7 +209,6 @@ const WizardForm = () => {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Card */}
         <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
           {errorMsg ? (
             <View style={styles.errorBox}>
@@ -274,6 +272,7 @@ const WizardForm = () => {
             ) : null}
           </View>
         </Animated.View>
+
         <View style={styles.stepperContainerBottom}>
           {steps.map((idx) => {
             const done = idx < step;
@@ -297,6 +296,17 @@ const WizardForm = () => {
           })}
         </View>
       </ScrollView>
+
+      {step === steps.length - 1 && (
+        <FloatingAction
+          color={styles.buttonPrimary.backgroundColor}
+          showBackground={false}
+          onPressMain={handleDownloadPDF}
+          floatingIcon={
+            <MaterialCommunityIcons name="download" size={24} color="#fff" />
+          }
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
