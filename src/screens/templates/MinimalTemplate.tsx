@@ -1,16 +1,22 @@
-// MinimalTemplate.tsx
 import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 interface AboutMe {
   name: string;
   email: string;
   phone: string;
   address: string;
-  summary: string; // we’ll use this as both header subtitle & Profile text
+  summary: string;
   image?: string;
   imageBase64?: string;
-  languages?: string[]; // ← new
+  languages?: string[];
 }
 
 interface Experience {
@@ -60,89 +66,115 @@ const getImageSource = (aboutMe: AboutMe) => {
 };
 
 const MinimalTemplate: React.FC<Props> = ({
-  cvName,
   aboutMe,
   experience,
   education,
   skills,
   contact,
   address,
-}) => (
-  <ScrollView contentContainerStyle={styles.container}>
-    {/* ===== HEADER ===== */}
-    <View style={styles.header}>
-      <View style={styles.headerImageWrapper}>
-        <Image source={getImageSource(aboutMe)} style={styles.headerImage} />
-      </View>
-      <View style={styles.headerInfo}>
-        <Text style={styles.name}>{aboutMe.name}</Text>
-        <Text style={styles.title}>{aboutMe.summary}</Text>
-        <Text style={styles.contact}>{aboutMe.address}</Text>
-        <Text style={styles.contact}>
-          {aboutMe.phone} | 
-          <Text style={styles.link}>{aboutMe.email}</Text>
-        </Text>
-      </View>
-    </View>
+}) => {
+  const screenWidth = useWindowDimensions().width;
+  const A4_WIDTH = 794;
+  const scale = screenWidth / A4_WIDTH;
 
-    {/* ===== BODY ===== */}
-    <View style={styles.body}>
-      {/* -- Left column: Skills & Languages */}
-      <View style={styles.sidebar}>
-        <Text style={styles.sidebarTitle}>Skills</Text>
-        {skills.map((s, i) => (
-          <Text key={i} style={styles.sidebarItem}>
-            {s}
-          </Text>
-        ))}
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: "#fff" }}
+      contentContainerStyle={{
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 0,
+        flexGrow: 1,
+      }}
+      minimumZoomScale={scale}
+      maximumZoomScale={2}
+      pinchGestureEnabled
+      scrollEnabled
+    >
+      <View style={[styles.page, { transform: [{ scale }] }]}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <View style={styles.headerImageWrapper}>
+            <Image
+              source={getImageSource(aboutMe)}
+              style={styles.headerImage}
+            />
+          </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.name}>
+              {contact.name} {contact.lastname}
+            </Text>
+            <Text style={styles.title}>{aboutMe.summary}</Text>
+            <Text style={styles.contact}>
+              {address.address1}, {address.cityName}, {address.countryName}
+            </Text>
+            <Text style={styles.contact}>
+              {contact.phone} |
+              <Text style={styles.link}>{contact.email}</Text>
+            </Text>
+          </View>
+        </View>
 
-        <Text style={[styles.sidebarTitle, { marginTop: 24 }]}>Languages</Text>
-        {(aboutMe.languages || []).map((l, i) => (
-          <Text key={i} style={styles.sidebarItem}>
-            {l}
-          </Text>
-        ))}
-      </View>
-
-      {/* -- Right column: Profile / Experience / Education */}
-      <View style={styles.main}>
-        <Section title="Profile">
-          <Text style={styles.mainText}>{aboutMe.summary}</Text>
-        </Section>
-
-        <Section title="Employment History">
-          {experience.map((exp, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.itemTitle}>
-                {exp.jobTitle} at {exp.company}
+        {/* BODY */}
+        <View style={styles.body}>
+          {/* Sidebar */}
+          <View style={styles.sidebar}>
+            <Text style={styles.sidebarTitle}>Skills</Text>
+            {skills.map((s, i) => (
+              <Text key={i} style={styles.sidebarItem}>
+                {s}
               </Text>
-              <Text style={styles.itemPeriod}>
-                {exp.startDate} – {exp.endDate}
+            ))}
+            <Text style={[styles.sidebarTitle, { marginTop: 24 }]}>
+              Languages
+            </Text>
+            {(aboutMe.languages || []).map((l, i) => (
+              <Text key={i} style={styles.sidebarItem}>
+                {l}
               </Text>
-              <Text style={styles.mainText}>{exp.description}</Text>
-            </View>
-          ))}
-        </Section>
+            ))}
+          </View>
 
-        <Section title="Education">
-          {education.map((edu, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.itemTitle}>
-                {edu.degree}, {edu.school}
-              </Text>
-              <Text style={styles.itemPeriod}>
-                {edu.startDate} – {edu.endDate}
-              </Text>
-              <Text style={styles.mainText}>{edu.description}</Text>
-            </View>
-          ))}
-        </Section>
+          {/* Main */}
+          <View style={styles.main}>
+            <Section title="Profile">
+              <Text style={styles.mainText}>{aboutMe.summary}</Text>
+            </Section>
+
+            <Section title="Employment History">
+              {experience.map((exp, i) => (
+                <View key={i} style={styles.item}>
+                  <Text style={styles.itemTitle}>
+                    {exp.jobTitle} at {exp.company}
+                  </Text>
+                  <Text style={styles.itemPeriod}>
+                    {exp.startDate} – {exp.endDate}
+                  </Text>
+                  <Text style={styles.mainText}>{exp.description}</Text>
+                </View>
+              ))}
+            </Section>
+
+            <Section title="Education">
+              {education.map((edu, i) => (
+                <View key={i} style={styles.item}>
+                  <Text style={styles.itemTitle}>
+                    {edu.degree}, {edu.school}
+                  </Text>
+                  <Text style={styles.itemPeriod}>
+                    {edu.startDate} – {edu.endDate}
+                  </Text>
+                  <Text style={styles.mainText}>{edu.description}</Text>
+                </View>
+              ))}
+            </Section>
+          </View>
+        </View>
       </View>
-    </View>
-  </ScrollView>
-);
+    </ScrollView>
+  );
+};
 
-// helper for section headings
 const Section: React.FC<React.PropsWithChildren<{ title: string }>> = ({
   title,
   children,
@@ -154,11 +186,11 @@ const Section: React.FC<React.PropsWithChildren<{ title: string }>> = ({
 );
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
+    width: 794,
+    minHeight: 1123,
     backgroundColor: "#FFF",
-    paddingBottom: 40,
   },
-  // Header
   header: {
     flexDirection: "row",
     backgroundColor: "#3DF8C8",
@@ -200,8 +232,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     color: "#000",
   },
-
-  // Body
   body: {
     flexDirection: "row",
     paddingHorizontal: 24,

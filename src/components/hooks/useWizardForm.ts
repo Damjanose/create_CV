@@ -333,8 +333,9 @@ const useWizardForm = (): UseWizardFormReturn => {
     address2: "",
   });
   const [languages, setLanguages] = useState<Language[]>([
-    { name: "al", level: 2 },
-    { name: "en", level: 2 },
+    { name: "al", level: 4 },
+    { name: "en", level: 3 },
+    { name: "it", level: 0 },
   ]);
   const [experience, setExperience] = useState<Experience[]>([
     {
@@ -569,65 +570,108 @@ const useWizardForm = (): UseWizardFormReturn => {
       `;
     } else {
       html = `
-        <div style="max-width:900px;margin:auto;font-family:sans-serif;background:#FFF;border-radius:16px;border:1px solid #f0f0f0;overflow:hidden;">
-          <!-- Header -->
-          <div style='display:flex;flex-direction:row;align-items:center;background:#3DF8C8;padding:24px;'>
-            <div style='width:100px;height:100px;margin-right:24px;'>
-              ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;background:#EEE;'/>` : ""}
-            </div>
-            <div style='flex:1;'>
-              <div style='font-size:26px;font-weight:700;color:#000;'>${contact.name} ${contact.lastname}</div>
-              <div style='font-size:16px;font-weight:500;margin:4px 0;color:#222;'>${aboutMe.summary}</div>
-              <div style='font-size:12px;color:#111;line-height:18px;'>${address.address1}, ${address.cityName}, ${address.countryName}</div>
-              <div style='font-size:12px;color:#111;line-height:18px;'>${contact.phone} | <span style='text-decoration:underline;color:#000;'>${contact.email}</span></div>
-            </div>
-          </div>
-          <!-- Body -->
-          <div style='display:flex;flex-direction:row;padding:32px 24px 0 24px;'>
-            <!-- Sidebar -->
-            <div style='width:120px;'>
-              <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;'>Skills</div>
-              ${skills.map((s) => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${s}</div>`).join("")}
-              <div style='font-size:13px;font-weight:600;letter-spacing:1px;color:#444;margin-bottom:8px;text-transform:uppercase;margin-top:24px;'>Languages</div>
-              ${languages.map((l) => `<div style='font-size:13px;padding:4px 0;border-bottom:1px solid #DDD;color:#555;'>${l.name} (${l.level})</div>`).join("")}
-            </div>
-            <!-- Main -->
-            <div style='flex:1;padding-left:32px;'>
-              <div style='margin-bottom:28px;'>
-                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Profile</div>
-                <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${aboutMe.summary}</div>
-              </div>
-              <div style='margin-bottom:28px;'>
-                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Employment History</div>
-                ${experience
-                  .map(
-                    (exp) => `
-                  <div style='margin-bottom:16px;'>
-                    <div style='font-size:14px;font-weight:500;color:#444;'>${exp.jobTitle} at ${exp.company}</div>
-                    <div style='font-size:12px;color:#888;margin-bottom:4px;'>${exp.startDate} – ${exp.endDate}</div>
-                    <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${exp.description}</div>
-                  </div>
-                `,
-                  )
-                  .join("")}
-              </div>
-              <div style='margin-bottom:28px;'>
-                <div style='font-size:14px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;'>Education</div>
-                ${education
-                  .map(
-                    (edu) => `
-                  <div style='margin-bottom:16px;'>
-                    <div style='font-size:14px;font-weight:500;color:#444;'>${edu.degree}, ${edu.school}</div>
-                    <div style='font-size:12px;color:#888;margin-bottom:4px;'>${edu.startDate} – ${edu.endDate}</div>
-                    <div style='font-size:13px;color:#333;line-height:20px;margin-bottom:16px;'>${edu.description}</div>
-                  </div>
-                `,
-                  )
-                  .join("")}
-              </div>
-            </div>
-          </div>
+      <div style="width:595px;height:842px;margin:auto;padding:40px;box-sizing:border-box;background:#fff;border:1px solid #ccc;font-family:sans-serif;">
+    <!-- Header -->
+    <div style="display:flex;flex-direction:row;align-items:center;background:#3DF8C8;padding:20px;border-radius:6px;margin-bottom:24px;">
+      ${
+        imageBase64
+          ? `
+        <div style="flex-shrink:0;margin-right:16px;">
+          <img src="data:image/jpeg;base64,${imageBase64}" style="width:80px;height:80px;border-radius:40px;object-fit:cover;background:#eee;" />
+        </div>`
+          : ""
+      }
+      <div>
+        <div style="font-size:20px;font-weight:bold;color:#000;">${contact.name} ${contact.lastname}</div>
+        <div style="font-size:14px;color:#222;">${aboutMe.summary?.split(" ").slice(0, 4).join(" ") || "Professional Title"}</div>
+        <div style="font-size:12px;color:#111;margin-top:6px;">${address.address1}, ${address.cityName}, ${address.countryName}</div>
+        <div style="font-size:12px;color:#111;">${contact.phone} | ${contact.email}</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="display:flex;flex-direction:row;gap:20px;">
+      <!-- Left Column -->
+      <div style="width:170px;">
+        <div style="margin-bottom:24px;">
+          <div style="font-size:14px;font-weight:bold;color:#000;margin-bottom:6px;">Skills</div>
+          <ul style="padding-left:16px;margin:0;">
+            ${skills.map((skill) => `<li style="font-size:12px;color:#444;margin-bottom:4px;">${skill}</li>`).join("")}
+          </ul>
         </div>
+
+        <div>
+          <div style="font-size:14px;font-weight:bold;color:#000;margin-bottom:6px;">Languages</div>
+          ${languages
+            .map(
+              (lang) => `
+            <div style="margin-bottom:10px;">
+              <div style="font-size:12px;color:#444;">${lang.name}</div>
+              <div style="height:5px;background:#eee;border-radius:4px;overflow:hidden;margin-top:3px;">
+                <div style="width:${(lang.level / 3) * 100}%;background:#333;height:100%;border-radius:4px;"></div>
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div style="flex:1;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Profile</div>
+          <div style="font-size:12px;line-height:1.5;color:#333;">${aboutMe.summary}</div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Experience</div>
+          ${experience
+            .map(
+              (exp) => `
+            <div style="margin-bottom:12px;">
+              <div style="font-size:13px;font-weight:600;color:#222;">${exp.jobTitle}, ${exp.company}</div>
+              <div style="font-size:11px;color:#666;">${exp.startDate} — ${exp.endDate}</div>
+              <ul style="padding-left:18px;margin:4px 0;">
+                ${exp.description
+                  ?.split("\n")
+                  .map(
+                    (line) =>
+                      `<li style="font-size:11px;color:#444;">${line}</li>`,
+                  )
+                  .join("")}
+              </ul>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+
+        <div>
+          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Education</div>
+          ${education
+            .map(
+              (edu) => `
+            <div style="margin-bottom:12px;">
+              <div style="font-size:13px;font-weight:600;color:#222;">${edu.degree}, ${edu.school}</div>
+              <div style="font-size:11px;color:#666;">${edu.startDate} — ${edu.endDate}</div>
+              <ul style="padding-left:18px;margin:4px 0;">
+                ${edu.description
+                  ?.split("\n")
+                  .map(
+                    (line) =>
+                      `<li style="font-size:11px;color:#444;">${line}</li>`,
+                  )
+                  .join("")}
+              </ul>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  </div>
       `;
     }
     return `<html><body style='font-family:sans-serif;padding:24px;background:#f2f4f8;'>${html}</body></html>`;
@@ -704,6 +748,3 @@ const useWizardForm = (): UseWizardFormReturn => {
 };
 
 export default useWizardForm;
-
-// Add module declaration for react-native-html-to-pdf if needed
-// declare module 'react-native-html-to-pdf';
