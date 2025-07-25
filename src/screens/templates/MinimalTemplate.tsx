@@ -16,7 +16,7 @@ interface AboutMe {
   summary: string;
   image?: string;
   imageBase64?: string;
-  languages?: string[];
+  languages?: { name: string; level: number }[];
 }
 
 interface Experience {
@@ -75,31 +75,19 @@ const MinimalTemplate: React.FC<Props> = ({
 }) => {
   const screenWidth = useWindowDimensions().width;
   const A4_WIDTH = 794;
-  const scale = screenWidth / A4_WIDTH;
+  const scale = screenWidth / (A4_WIDTH + 160);
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#fff" }}
-      contentContainerStyle={{
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 0,
-        flexGrow: 1,
-      }}
-      minimumZoomScale={scale}
-      maximumZoomScale={2}
+      style={{ flex: 1, backgroundColor: "#bbb" }}
+      contentContainerStyle={styles.pageWrapper}
       pinchGestureEnabled
       scrollEnabled
     >
       <View style={[styles.page, { transform: [{ scale }] }]}>
         {/* HEADER */}
         <View style={styles.header}>
-          <View style={styles.headerImageWrapper}>
-            <Image
-              source={getImageSource(aboutMe)}
-              style={styles.headerImage}
-            />
-          </View>
+          <Image source={getImageSource(aboutMe)} style={styles.headerImage} />
           <View style={styles.headerInfo}>
             <Text style={styles.name}>
               {contact.name} {contact.lastname}
@@ -125,13 +113,18 @@ const MinimalTemplate: React.FC<Props> = ({
                 {s}
               </Text>
             ))}
+
             <Text style={[styles.sidebarTitle, { marginTop: 24 }]}>
               Languages
             </Text>
             {(aboutMe.languages || []).map((l, i) => (
-              <Text key={i} style={styles.sidebarItem}>
-                {l}
-              </Text>
+              <View key={i} style={styles.languageBarWrapper}>
+                <Text style={styles.sidebarItem}>{l.name}</Text>
+                <View style={styles.languageBar}>
+                  <View style={[styles.languageFill, { flex: l.level }]} />
+                  <View style={{ flex: 1 - l.level }} />
+                </View>
+              </View>
             ))}
           </View>
 
@@ -145,12 +138,12 @@ const MinimalTemplate: React.FC<Props> = ({
               {experience.map((exp, i) => (
                 <View key={i} style={styles.item}>
                   <Text style={styles.itemTitle}>
-                    {exp.jobTitle} at {exp.company}
+                    {exp.jobTitle}, {exp.company}
                   </Text>
                   <Text style={styles.itemPeriod}>
-                    {exp.startDate} – {exp.endDate}
+                    {exp.startDate} — {exp.endDate}
                   </Text>
-                  <Text style={styles.mainText}>{exp.description}</Text>
+                  <Text style={styles.bullet}>• {exp.description}</Text>
                 </View>
               ))}
             </Section>
@@ -162,9 +155,9 @@ const MinimalTemplate: React.FC<Props> = ({
                     {edu.degree}, {edu.school}
                   </Text>
                   <Text style={styles.itemPeriod}>
-                    {edu.startDate} – {edu.endDate}
+                    {edu.startDate} — {edu.endDate}
                   </Text>
-                  <Text style={styles.mainText}>{edu.description}</Text>
+                  <Text style={styles.bullet}>• {edu.description}</Text>
                 </View>
               ))}
             </Section>
@@ -186,10 +179,22 @@ const Section: React.FC<React.PropsWithChildren<{ title: string }>> = ({
 );
 
 const styles = StyleSheet.create({
+  pageWrapper: {
+    alignItems: "center",
+    paddingVertical: 0,
+    backgroundColor: "#bbb",
+  },
   page: {
     width: 794,
     minHeight: 1123,
     backgroundColor: "#FFF",
+    borderRadius: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 3,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -197,28 +202,24 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
   },
-  headerImageWrapper: {
-    width: 100,
-    height: 100,
-    marginRight: 24,
-  },
   headerImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     backgroundColor: "#EEE",
+    marginRight: 24,
   },
   headerInfo: {
     flex: 1,
     justifyContent: "center",
   },
   name: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700",
     color: "#000",
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     marginVertical: 4,
     color: "#222",
@@ -235,25 +236,38 @@ const styles = StyleSheet.create({
   body: {
     flexDirection: "row",
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 24,
+    paddingBottom: 12,
   },
   sidebar: {
-    width: 120,
+    width: 160,
+    paddingRight: 16,
   },
   sidebarTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: "700",
     color: "#444",
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: "uppercase",
   },
   sidebarItem: {
-    fontSize: 13,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DDD",
-    color: "#555",
+    fontSize: 12,
+    color: "#333",
+    marginBottom: 6,
+  },
+  languageBarWrapper: {
+    marginBottom: 10,
+  },
+  languageBar: {
+    flexDirection: "row",
+    height: 4,
+    backgroundColor: "#DDD",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  languageFill: {
+    backgroundColor: "#111",
+    borderRadius: 2,
   },
   main: {
     flex: 1,
@@ -261,11 +275,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
+    fontWeight: "700",
+    color: "#000",
     marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   mainText: {
     fontSize: 13,
@@ -277,14 +289,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   itemTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#444",
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111",
   },
   itemPeriod: {
     fontSize: 12,
     color: "#888",
     marginBottom: 4,
+  },
+  bullet: {
+    fontSize: 12,
+    color: "#444",
+    marginLeft: 8,
   },
 });
 
