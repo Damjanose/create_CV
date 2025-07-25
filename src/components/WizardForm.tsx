@@ -20,7 +20,7 @@ import LanguagesSkillsStep from "./wizardSteps/LanguagesSkillsStep";
 import ExperienceStep from "./wizardSteps/ExperienceStep";
 import EducationStep from "./wizardSteps/EducationStep";
 import TemplateSelectStep from "./wizardSteps/TemplateSelectStep";
-import WizardPreviewStep from "./WizardPreviewStep";
+import WizardPreviewStep from "./wizardSteps/WizardPreviewStep.tsx";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const stepLabels = [
@@ -101,7 +101,10 @@ const WizardForm = () => {
   } = useWizardForm();
 
   const handleLaunchImageLibrary = async () => {
-    const response = await launchImageLibrary({ mediaType: "photo", quality: 0.7 });
+    const response = await launchImageLibrary({
+      mediaType: "photo",
+      quality: 0.7,
+    });
     if (response.assets && response.assets[0]?.uri) {
       const uri = response.assets[0].uri;
       let base64 = "";

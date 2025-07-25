@@ -1,8 +1,8 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
-import ClassicTemplate from "../screens/templates/ClassicTemplate";
-import ModernTemplate from "../screens/templates/ModernTemplate";
-import MinimalTemplate from "../screens/templates/MinimalTemplate";
+import ClassicTemplate from "../../screens/templates/ClassicTemplate.tsx";
+import ModernTemplate from "../../screens/templates/ModernTemplate.tsx";
+import MinimalTemplate from "../../screens/templates/MinimalTemplate.tsx";
 
 interface WizardPreviewStepProps {
   selectedTemplate: string;
@@ -38,14 +38,18 @@ const WizardPreviewStep = ({
       startDate: exp.startDate,
       endDate: exp.endDate,
       position: exp.jobTitle,
-      bullets: exp.description ? exp.description.split("\n").filter(Boolean) : [],
+      bullets: exp.description
+        ? exp.description.split("\n").filter(Boolean)
+        : [],
     }));
     const timelineEducation = education.map((edu: any) => ({
       institution: edu.school,
       location: "",
       year: `${edu.startDate} – ${edu.endDate}`,
       degree: edu.degree,
-      bullets: edu.description ? edu.description.split("\n").filter(Boolean) : [],
+      bullets: edu.description
+        ? edu.description.split("\n").filter(Boolean)
+        : [],
     }));
     templateProps = {
       cvName: `${contact.name} ${contact.lastname}`,
@@ -83,7 +87,9 @@ const WizardPreviewStep = ({
         period: `${exp.startDate} – ${exp.endDate}`,
         company: exp.company,
         role: exp.jobTitle,
-        bullets: exp.description ? exp.description.split("\n").filter(Boolean) : [],
+        bullets: exp.description
+          ? exp.description.split("\n").filter(Boolean)
+          : [],
       })),
       education: education.map((edu: any) => ({
         period: `${edu.startDate} – ${edu.endDate}`,
@@ -124,8 +130,17 @@ const WizardPreviewStep = ({
         {TemplateComponent ? (
           <TemplateComponent {...templateProps} />
         ) : (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-            <Text style={{ color: "#888", fontSize: 18 }}>No template selected.</Text>
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 32,
+            }}
+          >
+            <Text style={{ color: "#888", fontSize: 18 }}>
+              No template selected.
+            </Text>
           </View>
         )}
       </ScrollView>

@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -32,7 +38,10 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
         height={ITEM_HEIGHT}
         data={templates}
         mode="parallax"
-        modeConfig={{ parallaxScrollingScale: 0.9, parallaxScrollingOffset: 50 }}
+        modeConfig={{
+          parallaxScrollingScale: 0.9,
+          parallaxScrollingOffset: 50,
+        }}
         style={{ alignSelf: "center" }}
         scrollAnimationDuration={500}
         pagingEnabled
@@ -43,10 +52,7 @@ const TemplateSelectStep: React.FC<TemplateSelectStepProps> = ({
             <TouchableOpacity
               activeOpacity={0.95}
               onPress={() => setSelectedTemplate(item.id)}
-              style={[
-                styles.cardWrapper,
-                isSelected && styles.selectedCard,
-              ]}
+              style={[styles.cardWrapper, isSelected && styles.selectedCard]}
             >
               <View style={styles.imageContainer}>{item.preview}</View>
             </TouchableOpacity>
