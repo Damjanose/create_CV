@@ -93,6 +93,8 @@ function getStyles(isDark: boolean) {
       width: "100%",
       maxWidth: 400,
       justifyContent: "center",
+      paddingHorizontal: 10,
+      paddingBottom: 20
     },
     stepWrapper: {
       flexDirection: "row",

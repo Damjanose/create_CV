@@ -74,6 +74,7 @@ const TEMPLATES: Template[] = [
 const WizardForm = () => {
   const {
     step,
+    setStep,
     fadeAnim,
     isDark,
     styles,
@@ -98,6 +99,7 @@ const WizardForm = () => {
     handleNext,
     handleBack,
     handleDownloadPDF,
+    animateTo,
   } = useWizardForm();
 
   const handleLaunchImageLibrary = async () => {
@@ -274,21 +276,30 @@ const WizardForm = () => {
           </View>
         </Animated.View>
 
-        <View style={styles.stepperContainerBottom}>
+        <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
           {steps.map((idx) => {
             const done = idx < step;
             const current = idx === step;
+            const isAccessible = idx <= step || (idx === step + 1 && canGoNext());
+            
             return (
               <React.Fragment key={idx}>
-                <View
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isAccessible) {
+                      animateTo(idx);
+                    }
+                  }}
                   style={[
                     styles.circle,
                     current && styles.circleCurrent,
                     done && styles.circleDone,
+                    !isAccessible && { opacity: 0.5 },
                   ]}
+                  disabled={!isAccessible}
                 >
                   <Text style={styles.circleText}>{idx + 1}</Text>
-                </View>
+                </TouchableOpacity>
                 {idx < steps.length - 1 && (
                   <View style={[styles.line, done && styles.lineDone]} />
                 )}
@@ -306,6 +317,8 @@ const WizardForm = () => {
           floatingIcon={
             <MaterialCommunityIcons name="download" size={24} color="#fff" />
           }
+          position="right"
+          distanceToEdge={{ vertical: 82, horizontal: 20 }}
         />
       )}
     </KeyboardAvoidingView>
