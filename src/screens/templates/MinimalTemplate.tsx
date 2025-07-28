@@ -1,4 +1,3 @@
-// MinimalTemplate.tsx
 import React from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -7,10 +6,10 @@ interface AboutMe {
   email: string;
   phone: string;
   address: string;
-  summary: string; // we’ll use this as both header subtitle & Profile text
+  summary: string;
   image?: string;
   imageBase64?: string;
-  languages?: string[]; // ← new
+  languages?: { name: string; level: number }[];
 }
 
 interface Experience {
@@ -60,201 +59,183 @@ const getImageSource = (aboutMe: AboutMe) => {
 };
 
 const MinimalTemplate: React.FC<Props> = ({
-  cvName,
   aboutMe,
   experience,
   education,
   skills,
   contact,
   address,
-}) => (
-  <ScrollView contentContainerStyle={styles.container}>
-    {/* ===== HEADER ===== */}
-    <View style={styles.header}>
-      <View style={styles.headerImageWrapper}>
-        <Image source={getImageSource(aboutMe)} style={styles.headerImage} />
-      </View>
-      <View style={styles.headerInfo}>
-        <Text style={styles.name}>{aboutMe.name}</Text>
-        <Text style={styles.title}>{aboutMe.summary}</Text>
-        <Text style={styles.contact}>{aboutMe.address}</Text>
-        <Text style={styles.contact}>
-          {aboutMe.phone} | 
-          <Text style={styles.link}>{aboutMe.email}</Text>
-        </Text>
-      </View>
-    </View>
-
-    {/* ===== BODY ===== */}
-    <View style={styles.body}>
-      {/* -- Left column: Skills & Languages */}
-      <View style={styles.sidebar}>
-        <Text style={styles.sidebarTitle}>Skills</Text>
-        {skills.map((s, i) => (
-          <Text key={i} style={styles.sidebarItem}>
-            {s}
+}) => {
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={styles.a4}>
+        <View style={styles.header}>
+          <Image source={getImageSource(aboutMe)} style={styles.avatar} />
+          <Text style={styles.name}>
+            {contact.name} {contact.lastname}
           </Text>
-        ))}
-
-        <Text style={[styles.sidebarTitle, { marginTop: 24 }]}>Languages</Text>
-        {(aboutMe.languages || []).map((l, i) => (
-          <Text key={i} style={styles.sidebarItem}>
-            {l}
+          <Text style={styles.title}>{aboutMe.summary}</Text>
+          <Text style={styles.contact}>
+            {address.address1}, {address.cityName}, {address.countryName}
           </Text>
-        ))}
+          <Text style={styles.contact}>{contact.phone}</Text>
+          <Text style={styles.contact}>{contact.email}</Text>
+        </View>
+
+        <View style={styles.row}>
+          {/* Sidebar */}
+          <View style={styles.sidebar}>
+            <Text style={styles.sectionTitle}>Skills</Text>
+            {skills.map((s, i) => (
+              <Text key={i} style={styles.text}>
+                • {s}
+              </Text>
+            ))}
+
+            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
+              Languages
+            </Text>
+            {(aboutMe.languages || []).map((l, i) => (
+              <Text key={i} style={styles.text}>
+                {l.name} – {Math.round(l.level * 100)}%
+              </Text>
+            ))}
+          </View>
+
+          {/* Content */}
+          <View style={styles.content}>
+            <Text style={styles.headerTitle}>Experience</Text>
+            <View style={styles.divider} />
+            {experience.map((exp, i) => (
+              <View key={i} style={styles.block}>
+                <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
+                <Text style={styles.meta}>
+                  {exp.company} ({exp.startDate} – {exp.endDate})
+                </Text>
+                <Text style={styles.bullet}>• {exp.description}</Text>
+              </View>
+            ))}
+
+            <Text style={styles.headerTitle}>Education</Text>
+            <View style={styles.divider} />
+            {education.map((edu, i) => (
+              <View key={i} style={styles.block}>
+                <Text style={styles.blockTitle}>{edu.degree}</Text>
+                <Text style={styles.meta}>
+                  {edu.school} ({edu.startDate} – {edu.endDate})
+                </Text>
+                <Text style={styles.bullet}>• {edu.description}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
-
-      {/* -- Right column: Profile / Experience / Education */}
-      <View style={styles.main}>
-        <Section title="Profile">
-          <Text style={styles.mainText}>{aboutMe.summary}</Text>
-        </Section>
-
-        <Section title="Employment History">
-          {experience.map((exp, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.itemTitle}>
-                {exp.jobTitle} at {exp.company}
-              </Text>
-              <Text style={styles.itemPeriod}>
-                {exp.startDate} – {exp.endDate}
-              </Text>
-              <Text style={styles.mainText}>{exp.description}</Text>
-            </View>
-          ))}
-        </Section>
-
-        <Section title="Education">
-          {education.map((edu, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.itemTitle}>
-                {edu.degree}, {edu.school}
-              </Text>
-              <Text style={styles.itemPeriod}>
-                {edu.startDate} – {edu.endDate}
-              </Text>
-              <Text style={styles.mainText}>{edu.description}</Text>
-            </View>
-          ))}
-        </Section>
-      </View>
-    </View>
-  </ScrollView>
-);
-
-// helper for section headings
-const Section: React.FC<React.PropsWithChildren<{ title: string }>> = ({
-  title,
-  children,
-}) => (
-  <View style={{ marginBottom: 28 }}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {children}
-  </View>
-);
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#FFF",
-    paddingBottom: 40,
+  scroll: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingVertical: 32,
+    backgroundColor: "#bbb",
   },
-  // Header
-  header: {
+  a4: {
+    width: 300,
+    aspectRatio: 1 / 1.414,
+    backgroundColor: "#fff",
+    borderRadius: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 2,
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
+    flex: 1,
+  },
+  header: {
     backgroundColor: "#3DF8C8",
-    padding: 24,
+    padding: 10,
     alignItems: "center",
   },
-  headerImageWrapper: {
-    width: 100,
-    height: 100,
-    marginRight: 24,
-  },
-  headerImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#EEE",
-  },
-  headerInfo: {
-    flex: 1,
-    justifyContent: "center",
+    marginBottom: 5,
   },
   name: {
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 8,
+    fontWeight: "bold",
     color: "#000",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginVertical: 4,
-    color: "#222",
+    fontSize: 6,
+    color: "#111",
+    fontWeight: "600",
+    marginVertical: 2,
+    textAlign: "center",
   },
   contact: {
-    fontSize: 12,
-    color: "#111",
-    lineHeight: 18,
-  },
-  link: {
-    textDecorationLine: "underline",
-    color: "#000",
-  },
-
-  // Body
-  body: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    fontSize: 5.5,
+    color: "#222",
+    marginBottom: 1,
   },
   sidebar: {
-    width: 120,
-  },
-  sidebarTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 1,
-    color: "#444",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-  sidebarItem: {
-    fontSize: 13,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DDD",
-    color: "#555",
-  },
-  main: {
-    flex: 1,
-    paddingLeft: 32,
+    width: 90,
+    backgroundColor: "#f5f5f5",
+    padding: 5,
   },
   sectionTitle: {
-    fontSize: 14,
     fontWeight: "600",
-    color: "#666",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    color: "#111",
+    fontSize: 6.5,
+    marginTop: 7,
+    marginBottom: 3,
   },
-  mainText: {
-    fontSize: 13,
+  text: {
     color: "#333",
-    lineHeight: 20,
-    marginBottom: 16,
+    fontSize: 5.5,
+    marginBottom: 2,
   },
-  item: {
-    marginBottom: 16,
+  content: {
+    flex: 1,
+    padding: 8,
   },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#444",
-  },
-  itemPeriod: {
-    fontSize: 12,
-    color: "#888",
+  headerTitle: {
+    fontSize: 9,
+    fontWeight: "700",
     marginBottom: 4,
+    color: "#000",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#ddd",
+    marginBottom: 5,
+  },
+  block: {
+    marginBottom: 8,
+  },
+  blockTitle: {
+    fontSize: 7,
+    fontWeight: "600",
+    color: "#000",
+  },
+  meta: {
+    fontSize: 5.5,
+    color: "#555",
+    marginBottom: 2,
+  },
+  bullet: {
+    fontSize: 6,
+    color: "#333",
+    marginLeft: 5,
+    marginBottom: 2,
   },
 });
 

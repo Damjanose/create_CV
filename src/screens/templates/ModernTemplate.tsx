@@ -4,8 +4,9 @@ import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface AboutMe {
-  name: string; // e.g. "John Doe"
-  role: string; // e.g. "Financial Analyst"
+  name: string;
+  role: string;
+  lastname: string;
   summary: string;
   email: string;
   location: string;
@@ -15,344 +16,265 @@ interface AboutMe {
 
 interface Language {
   label: string;
-  level: number; // 0–1
+  level: number;
 }
 
 interface EducationEntry {
-  period: string; // e.g. "20XX–20XX"
-  location: string; // e.g. "NY-USA"
-  degree: string; // e.g. "Master of Business Administration"
-  school: string; // e.g. "NYU"
+  period: string;
+  location: string;
+  degree: string;
+  school: string;
 }
 
 interface SkillSections {
-  hard: string[]; // e.g. ["Financial Modeling","Excel",…]
-  soft: string[]; // e.g. ["Analytical thinking","Communication",…]
+  hard: string[];
+  soft: string[];
 }
 
 interface ExperienceEntry {
-  period: string; // e.g. "Nov. 20XX – Jul. 20XX"
-  company: string; // e.g. "ABC CORPORATION"
-  role: string; // e.g. "Senior Financial Analyst"
-  bullets: string[]; // each bullet item
+  period: string;
+  company: string;
+  role: string;
+  bullets: string[];
 }
 
 interface Props {
   cvName: string;
   aboutMe: AboutMe;
-  languages: { label: string; level: number }[];
+  languages: Language[];
   education: EducationEntry[];
   skills: SkillSections;
   experience: ExperienceEntry[];
-  contact: {
-    name: string;
-    lastname: string;
-    phone: string;
-    email: string;
-  };
-  address: {
-    countryName: string;
-    cityName: string;
-    address1: string;
-    address2: string;
-  };
 }
 
 const ModernTemplate: React.FC<Props> = ({
-  cvName,
   aboutMe,
   languages,
   education,
   skills,
   experience,
-  contact,
-  address,
 }) => {
-  // split name into first + last
-  const parts = aboutMe.name.split(" ");
-  const first = parts.shift()!;
-  const last = parts.join(" ");
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Top: name/subtitle/photo */}
-      <View style={styles.topRow}>
-        <View style={styles.nameBlock}>
-          <View style={styles.nameRow}>
-            <Text style={styles.nameFirst}>{first}</Text>
-            <Text style={styles.nameLast}> {last}</Text>
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={styles.a4}>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.headerTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nameFirst}>{aboutMe.name}</Text>
+              <Text style={styles.nameLast}>{aboutMe.lastname}</Text>
+              <Text style={styles.role}>{aboutMe.role}</Text>
+              <Text style={styles.summary}>{aboutMe.summary}</Text>
+            </View>
+            <Image
+              source={
+                aboutMe.imageUri
+                  ? { uri: aboutMe.imageUri }
+                  : require("../../assets/images/user.png")
+              }
+              style={styles.avatar}
+            />
           </View>
-          <Text style={styles.role}>{aboutMe.role}</Text>
-          <Text style={styles.summary}>{aboutMe.summary}</Text>
-        </View>
-        <Image
-          source={
-            aboutMe.imageUri
-              ? { uri: aboutMe.imageUri }
-              : require("../../assets/images/user.png")
-          }
-          style={styles.avatar}
-        />
-      </View>
 
-      {/* Contact icons */}
-      <View style={styles.contactRow}>
-        <View style={styles.contactItem}>
-          <Icon name="email-outline" size={16} />
-          <Text style={styles.contactText}>{aboutMe.email}</Text>
-        </View>
-        <View style={styles.contactItem}>
-          <Icon name="map-marker-outline" size={16} />
-          <Text style={styles.contactText}>{aboutMe.location}</Text>
-        </View>
-        <View style={styles.contactItem}>
-          <Icon name="phone-outline" size={16} />
-          <Text style={styles.contactText}>{aboutMe.phone}</Text>
-        </View>
-      </View>
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Languages */}
-      <Text style={styles.sectionHeader}>Languages</Text>
-      <View style={styles.languagesRow}>
-        {languages.map((lang, i) => (
-          <View key={i} style={styles.languageItem}>
-            <Text style={styles.languageLabel}>{lang.label}</Text>
-            <View style={styles.languageBar}>
-              <View style={[styles.languageBarFill, { flex: lang.level }]} />
-              <View style={{ flex: 1 - lang.level }} />
+          {/* Contact Row */}
+          <View style={styles.contactRow}>
+            <View style={styles.contactItem}>
+              <Icon name="email-outline" size={8} color="#333" />
+              <Text style={styles.contactText}>{aboutMe.email}</Text>
+            </View>
+            <View style={styles.contactItem}>
+              <Icon name="map-marker-outline" size={8} color="#333" />
+              <Text style={styles.contactText}>{aboutMe.location}</Text>
+            </View>
+            <View style={styles.contactItem}>
+              <Icon name="phone-outline" size={8} color="#333" />
+              <Text style={styles.contactText}>{aboutMe.phone}</Text>
             </View>
           </View>
-        ))}
-      </View>
 
-      {/* Education */}
-      <Text style={styles.sectionHeader}>Education</Text>
-      {education.map((edu, i) => (
-        <View key={i} style={styles.eduRow}>
-          <View style={styles.eduLeft}>
-            <Text style={styles.eduPeriod}>{edu.period}</Text>
-            <Text style={styles.eduLocation}>{edu.location}</Text>
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Languages */}
+          <Text style={styles.sectionTitle}>Languages</Text>
+          <View style={styles.languageRow}>
+            {languages.map((lang, i) => (
+              <View key={i} style={styles.languageItem}>
+                <Text style={styles.languageLabel}>{lang.label}</Text>
+                <View style={styles.languageBar}>
+                  <View style={[styles.languageFill, { flex: lang.level }]} />
+                  <View style={{ flex: 1 - lang.level }} />
+                </View>
+              </View>
+            ))}
           </View>
-          <View style={styles.eduRight}>
-            <Text style={styles.eduDegree}>{edu.degree}</Text>
-            <Text style={styles.eduSchool}>{edu.school}</Text>
-          </View>
-        </View>
-      ))}
 
-      {/* Skills */}
-      <Text style={styles.sectionHeader}>Skills</Text>
-      <Text style={styles.skillLine}>
-        <Text style={styles.skillLabel}>Hard: </Text>
-        <Text style={styles.skillText}>{skills.hard.join(", ")}</Text>
-      </Text>
-      <Text style={styles.skillLine}>
-        <Text style={styles.skillLabel}>Soft: </Text>
-        <Text style={styles.skillText}>{skills.soft.join(", ")}</Text>
-      </Text>
+          {/* Education */}
+          <Text style={styles.sectionTitle}>Education</Text>
+          {education.map((edu, i) => (
+            <View key={i} style={styles.block}>
+              <Text style={styles.blockTitle}>{edu.degree}</Text>
+              <Text style={styles.meta}>
+                {edu.school}, {edu.location} ({edu.period})
+              </Text>
+            </View>
+          ))}
 
-      {/* Professional Experience */}
-      <Text style={styles.sectionHeader}>Professional Experience</Text>
-      {experience.map((exp, i) => (
-        <View key={i} style={styles.expBlock}>
-          <Text style={styles.expLine}>
-            <Text style={styles.expPeriod}>{exp.period}</Text>{" "}
-            <Text style={styles.expCompany}>{exp.company}</Text>
+          {/* Skills */}
+          <Text style={styles.sectionTitle}>Skills</Text>
+          <Text style={styles.bullet}>
+            <Text style={{ fontWeight: "600" }}>Hard:</Text>{" "}
+            {skills.hard.join(", ")}
           </Text>
-          <Text style={styles.expRole}>{exp.role}</Text>
-          {exp.bullets.map((b, j) => (
-            <Text key={j} style={styles.expBullet}>
-              • {b}
-            </Text>
+          <Text style={styles.bullet}>
+            <Text style={{ fontWeight: "600" }}>Soft:</Text>{" "}
+            {skills.soft.join(", ")}
+          </Text>
+
+          {/* Experience */}
+          <Text style={styles.sectionTitle}>Professional Experience</Text>
+          {experience.map((exp, i) => (
+            <View key={i} style={styles.block}>
+              <Text style={styles.blockTitle}>{exp.role}</Text>
+              <Text style={styles.meta}>
+                {exp.company} ({exp.period})
+              </Text>
+              {exp.bullets.map((b, j) => (
+                <Text key={j} style={styles.bullet}>
+                  • {b}
+                </Text>
+              ))}
+            </View>
           ))}
         </View>
-      ))}
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
+  scroll: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingVertical: 32,
+    backgroundColor: "#bbb",
+  },
+  a4: {
+    width: 300,
+    aspectRatio: 1 / 1.414,
     backgroundColor: "#fff",
+    borderRadius: 4,
+    overflow: "hidden",
   },
-  topRow: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  nameBlock: {
+  content: {
     flex: 1,
-    paddingRight: 12,
+    padding: 12,
   },
-  nameRow: {
+  headerTop: {
     flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: 4,
-  },
-  nameFirst: {
-    fontSize: 28,
-    fontFamily: "serif",
-    color: "#666",
-  },
-  nameLast: {
-    fontSize: 28,
-    fontFamily: "serif",
-    fontWeight: "700",
-    color: "#000",
-  },
-  role: {
-    fontStyle: "italic",
-    fontSize: 14,
-    color: "#333",
     marginBottom: 8,
   },
-  summary: {
-    fontSize: 13,
-    color: "#222",
-    lineHeight: 20,
-    marginBottom: 12,
-  },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#eee",
+    marginLeft: 8,
+  },
+  nameFirst: {
+    fontSize: 10,
+    color: "#666",
+    fontFamily: "serif",
+  },
+  nameLast: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#000",
+    fontFamily: "serif",
+  },
+  role: {
+    fontSize: 6,
+    fontStyle: "italic",
+    color: "#444",
+    marginBottom: 4,
+  },
+  summary: {
+    fontSize: 6,
+    color: "#333",
+    lineHeight: 9,
   },
   contactRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 12,
+    marginVertical: 6,
   },
   contactItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 12,
+    marginHorizontal: 6,
   },
   contactText: {
-    fontSize: 12,
-    marginLeft: 4,
+    fontSize: 5,
+    marginLeft: 2,
     color: "#333",
   },
   divider: {
-    height: 2,
+    height: 1,
     backgroundColor: "#000",
-    marginVertical: 12,
+    marginVertical: 6,
   },
-  sectionHeader: {
-    backgroundColor: "#DDD",
-    alignSelf: "stretch",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    fontSize: 13,
+  sectionTitle: {
+    fontSize: 7,
+    fontWeight: "700",
+    backgroundColor: "#ddd",
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    marginTop: 10,
+    marginBottom: 5,
+    alignSelf: "flex-start",
+  },
+  block: {
+    marginBottom: 6,
+  },
+  blockTitle: {
+    fontSize: 6.5,
     fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
+    color: "#111",
   },
-
-  /* Languages */
-  languagesRow: {
+  meta: {
+    fontSize: 5.5,
+    color: "#666",
+    marginBottom: 2,
+  },
+  bullet: {
+    fontSize: 5.5,
+    color: "#333",
+    marginLeft: 6,
+    marginBottom: 2,
+  },
+  languageRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   languageItem: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 3,
   },
   languageLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 5,
+    marginBottom: 2,
     color: "#333",
   },
   languageBar: {
     flexDirection: "row",
-    height: 4,
+    height: 3,
     backgroundColor: "#EEE",
     borderRadius: 2,
   },
-  languageBarFill: {
+  languageFill: {
     backgroundColor: "#333",
     borderRadius: 2,
-  },
-
-  /* Education */
-  eduRow: {
-    flexDirection: "row",
-    marginBottom: 12,
-  },
-  eduLeft: {
-    width: 80,
-  },
-  eduPeriod: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#333",
-  },
-  eduLocation: {
-    fontSize: 12,
-    color: "#555",
-  },
-  eduRight: {
-    flex: 1,
-    paddingLeft: 12,
-  },
-  eduDegree: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#000",
-  },
-  eduSchool: {
-    fontSize: 12,
-    color: "#333",
-  },
-
-  /* Skills */
-  skillLine: {
-    flexDirection: "row",
-    marginBottom: 6,
-  },
-  skillLabel: {
-    fontWeight: "600",
-    fontSize: 12,
-    color: "#333",
-  },
-  skillText: {
-    fontSize: 12,
-    color: "#555",
-  },
-
-  /* Experience */
-  expBlock: {
-    marginBottom: 16,
-  },
-  expLine: {
-    flexDirection: "row",
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  expPeriod: {
-    fontSize: 12,
-    color: "#333",
-  },
-  expCompany: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#000",
-  },
-  expRole: {
-    fontSize: 12,
-    fontStyle: "italic",
-    color: "#555",
-    marginBottom: 4,
-  },
-  expBullet: {
-    fontSize: 12,
-    color: "#333",
-    marginLeft: 8,
-    marginBottom: 2,
   },
 });
 
