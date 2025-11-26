@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  StyleSheet,
 } from "react-native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface AboutMeStepProps {
   aboutMe: {
@@ -66,123 +68,232 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           marginBottom: 8,
         }}
       />
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={formStyles.photoButtonsContainer}>
         <TouchableOpacity
-          style={{
-            backgroundColor: isDark ? "#4F8EF7" : "#1976D2",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 8,
-            marginRight: 8,
-          }}
+          style={[
+            formStyles.photoButton,
+            { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
+          ]}
           onPress={launchImageLibrary}
         >
-          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-            Upload Photo
-          </Text>
+          <MaterialCommunityIcons name="upload" size={18} color="#fff" />
+          <Text style={formStyles.photoButtonText}>Upload Photo</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{
-            backgroundColor: isDark ? "#4F8EF7" : "#1976D2",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 8,
-          }}
+          style={[
+            formStyles.photoButton,
+            { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
+          ]}
           onPress={launchCamera}
         >
-          <Text style={{ color: "#fff", fontWeight: "bold" }}>Take Photo</Text>
+          <MaterialCommunityIcons name="camera" size={18} color="#fff" />
+          <Text style={formStyles.photoButtonText}>Take Photo</Text>
         </TouchableOpacity>
       </View>
     </View>
-    <Text style={styles.label}>First Name</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="First Name"
-      value={contact.name}
-      onChangeText={(name) => setContact((prev: any) => ({ ...prev, name }))}
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Last Name</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Last Name"
-      value={contact.lastname}
-      onChangeText={(lastname) =>
-        setContact((prev: any) => ({ ...prev, lastname }))
-      }
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Phone</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Phone"
-      value={contact.phone}
-      onChangeText={(phone) => setContact((prev: any) => ({ ...prev, phone }))}
-      keyboardType="phone-pad"
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Email</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Email"
-      value={contact.email}
-      onChangeText={(email) => setContact((prev: any) => ({ ...prev, email }))}
-      keyboardType="email-address"
-      autoCapitalize="none"
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Country</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Country"
-      value={address.countryName}
-      onChangeText={(countryName) =>
-        setAddress((prev: any) => ({ ...prev, countryName }))
-      }
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>City</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="City"
-      value={address.cityName}
-      onChangeText={(cityName) =>
-        setAddress((prev: any) => ({ ...prev, cityName }))
-      }
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Address Line 1</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Address Line 1"
-      value={address.address1}
-      onChangeText={(address1) =>
-        setAddress((prev: any) => ({ ...prev, address1 }))
-      }
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Address Line 2 (optional)</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Address Line 2 (optional)"
-      value={address.address2}
-      onChangeText={(address2) =>
-        setAddress((prev: any) => ({ ...prev, address2 }))
-      }
-      placeholderTextColor={"#ffffff3b"}
-    />
-    <Text style={styles.label}>Summary</Text>
-    <TextInput
-      style={[styles.input, { height: 100 }]}
-      placeholder="Write something about yourself..."
-      value={aboutMe.summary}
-      onChangeText={(summary) =>
-        setAboutMe((prev: any) => ({ ...prev, summary }))
-      }
-      multiline
-      placeholderTextColor={"#ffffff3b"}
-    />
+    <View style={formStyles.section}>
+      <Text style={[styles.label, formStyles.sectionTitle]}>Contact Information</Text>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="account"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="First Name"
+          value={contact.name}
+          onChangeText={(name) => setContact((prev: any) => ({ ...prev, name }))}
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="account"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Last Name"
+          value={contact.lastname}
+          onChangeText={(lastname) =>
+            setContact((prev: any) => ({ ...prev, lastname }))
+          }
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="phone"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Phone"
+          value={contact.phone}
+          onChangeText={(phone) => setContact((prev: any) => ({ ...prev, phone }))}
+          keyboardType="phone-pad"
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="email"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Email"
+          value={contact.email}
+          onChangeText={(email) => setContact((prev: any) => ({ ...prev, email }))}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+    </View>
+
+    <View style={formStyles.section}>
+      <Text style={[styles.label, formStyles.sectionTitle]}>Address</Text>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="map-marker"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Country"
+          value={address.countryName}
+          onChangeText={(countryName) =>
+            setAddress((prev: any) => ({ ...prev, countryName }))
+          }
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="city"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="City"
+          value={address.cityName}
+          onChangeText={(cityName) =>
+            setAddress((prev: any) => ({ ...prev, cityName }))
+          }
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="home"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Address Line 1"
+          value={address.address1}
+          onChangeText={(address1) =>
+            setAddress((prev: any) => ({ ...prev, address1 }))
+          }
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+      <View style={formStyles.inputContainer}>
+        <MaterialCommunityIcons
+          name="home-variant"
+          size={20}
+          color={isDark ? "#4F8EF7" : "#1976D2"}
+          style={formStyles.inputIcon}
+        />
+        <TextInput
+          style={[styles.input, formStyles.input]}
+          placeholder="Address Line 2 (optional)"
+          value={address.address2}
+          onChangeText={(address2) =>
+            setAddress((prev: any) => ({ ...prev, address2 }))
+          }
+          placeholderTextColor={isDark ? "#888" : "#999"}
+        />
+      </View>
+    </View>
+
+    <View style={formStyles.section}>
+      <Text style={[styles.label, formStyles.sectionTitle]}>About Me</Text>
+      <TextInput
+        style={[styles.input, formStyles.textArea]}
+        placeholder="Write something about yourself..."
+        value={aboutMe.summary}
+        onChangeText={(summary) =>
+          setAboutMe((prev: any) => ({ ...prev, summary }))
+        }
+        multiline
+        textAlignVertical="top"
+        placeholderTextColor={isDark ? "#888" : "#999"}
+      />
+    </View>
   </View>
 );
+
+const formStyles = StyleSheet.create({
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+  },
+  textArea: {
+    height: 100,
+    paddingTop: 12,
+  },
+  photoButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  photoButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  photoButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+});
 
 export default AboutMeStep;

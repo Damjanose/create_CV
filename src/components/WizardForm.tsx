@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Alert,
   Animated,
@@ -9,23 +9,28 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import RNFS from "react-native-fs";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
+import DocumentPicker from "react-native-document-picker";
 import { FloatingAction } from "react-native-floating-action";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 
 import useWizardForm from "./hooks/useWizardForm";
+import WelcomeStep from "./wizardSteps/WelcomeStep";
 import AboutMeStep from "./wizardSteps/AboutMeStep";
 import LanguagesSkillsStep from "./wizardSteps/LanguagesSkillsStep";
 import ExperienceStep from "./wizardSteps/ExperienceStep";
 import EducationStep from "./wizardSteps/EducationStep";
 import TemplateSelectStep from "./wizardSteps/TemplateSelectStep";
 import WizardPreviewStep from "./wizardSteps/WizardPreviewStep.tsx";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const stepLabels = [
+  "Welcome",
   "Template",
   "About Me, Contact & Address",
   "Languages & Skills",
@@ -74,11 +79,13 @@ const TEMPLATES: Template[] = [
 ];
 
 const WizardForm = () => {
+  const insets = useSafeAreaInsets();
   const {
     step,
     setStep,
     fadeAnim,
     isDark,
+    toggleDarkMode,
     styles,
     aboutMe,
     setAboutMe,
@@ -94,6 +101,8 @@ const WizardForm = () => {
     setEducation,
     skills,
     setSkills,
+    hobbies,
+    setHobbies,
     errorMsg,
     selectedTemplate,
     setSelectedTemplate,
@@ -103,6 +112,17 @@ const WizardForm = () => {
     handleDownloadPDF,
     animateTo,
   } = useWizardForm();
+
+  // Animation for toggle switch
+  const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(toggleAnim, {
+      toValue: isDark ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isDark]);
 
   const requestPhotoPermission = async (): Promise<boolean> => {
     let permission;
@@ -194,9 +214,79 @@ const WizardForm = () => {
     }
   };
 
+  const handleUploadResume = async () => {
+    try {
+      // Request storage permission for Android
+      if (Platform.OS === "android") {
+        const version =
+          typeof Platform.Version === "string"
+            ? parseInt(Platform.Version, 10)
+            : Platform.Version;
+        let permission;
+        if (version >= 33) {
+          permission = await check(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
+          if (permission !== RESULTS.GRANTED) {
+            permission = await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
+          }
+        } else {
+          permission = await check(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+          if (permission !== RESULTS.GRANTED) {
+            permission = await request(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+          }
+        }
+        if (permission !== RESULTS.GRANTED) {
+          Alert.alert(
+            "Permission Required",
+            "Please grant storage access to upload a resume."
+          );
+          return;
+        }
+      }
+
+      // Pick PDF document
+      const result = await DocumentPicker.pick({
+        type: [DocumentPicker.types.pdf],
+        copyTo: "cachesDirectory",
+      });
+
+      if (result && result[0]) {
+        const file = result[0];
+        Alert.alert(
+          "Resume Uploaded",
+          `File: ${file.name}\n\nNote: PDF parsing is not yet implemented. You can proceed to fill in your information manually, or we'll add automatic data extraction in a future update.`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Proceed to template selection step
+                animateTo(1);
+              },
+            },
+          ]
+        );
+      }
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        // User cancelled the picker
+        return;
+      } else {
+        Alert.alert("Error", "Failed to upload resume. Please try again.");
+      }
+    }
+  };
+
   const renderStepContent = () => {
     switch (step) {
       case 0:
+        return (
+          <WelcomeStep
+            styles={styles}
+            isDark={isDark}
+            onCreateResume={handleNext}
+            onUploadResume={handleUploadResume}
+          />
+        );
+      case 1:
         return (
           <TemplateSelectStep
             templates={TEMPLATES}
@@ -204,7 +294,7 @@ const WizardForm = () => {
             setSelectedTemplate={setSelectedTemplate}
           />
         );
-      case 1:
+      case 2:
         return (
           <AboutMeStep
             aboutMe={aboutMe}
@@ -219,18 +309,20 @@ const WizardForm = () => {
             launchCamera={handleLaunchCamera}
           />
         );
-      case 2:
+      case 3:
         return (
           <LanguagesSkillsStep
             languages={languages}
             setLanguages={setLanguages}
             skills={skills}
             setSkills={setSkills}
+            hobbies={hobbies}
+            setHobbies={setHobbies}
             styles={styles}
             isDark={isDark}
           />
         );
-      case 3:
+      case 4:
         return (
           <ExperienceStep
             experience={experience}
@@ -239,7 +331,7 @@ const WizardForm = () => {
             isDark={isDark}
           />
         );
-      case 4:
+      case 5:
         return (
           <EducationStep
             education={education}
@@ -248,7 +340,7 @@ const WizardForm = () => {
             isDark={isDark}
           />
         );
-      case 5:
+      case 6:
         return (
           <WizardPreviewStep
             selectedTemplate={selectedTemplate}
@@ -259,6 +351,7 @@ const WizardForm = () => {
             address={address}
             skills={skills}
             languages={languages}
+            hobbies={hobbies}
             styles={styles}
           />
         );
@@ -273,6 +366,43 @@ const WizardForm = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
     >
+      {step === 0 && (
+        <View style={[headerStyles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            style={[
+              headerStyles.toggleContainer,
+              {
+                backgroundColor: isDark ? "#2A2D35" : "#E8E8E8",
+              },
+            ]}
+            onPress={toggleDarkMode}
+            activeOpacity={0.8}
+          >
+            <Animated.View
+              style={[
+                headerStyles.toggleSwitch,
+                {
+                  transform: [
+                    {
+                      translateX: toggleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [2, 22],
+                      }),
+                    },
+                  ],
+                  backgroundColor: isDark ? "#4F8EF7" : "#FFD700",
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={isDark ? "weather-night" : "weather-sunny"}
+                size={18}
+                color={isDark ? "#FFF" : "#333"}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
@@ -286,117 +416,121 @@ const WizardForm = () => {
 
           <View style={styles.content}>{renderStepContent()}</View>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.buttonSecondary,
-                step === 0 && styles.buttonDisabled,
-              ]}
-              onPress={handleBack}
-              disabled={step === 0}
-            >
-              <Text
+          {step > 0 && (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
                 style={[
-                  styles.buttonText,
-                  styles.textSecondary,
-                  step === 0 && styles.textDisabled,
+                  styles.button,
+                  styles.buttonSecondary,
+                  step === 0 && styles.buttonDisabled,
                 ]}
+                onPress={handleBack}
+                disabled={step === 0}
               >
-                Back
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    styles.textSecondary,
+                    step === 0 && styles.textDisabled,
+                  ]}
+                >
+                  Back
+                </Text>
+              </TouchableOpacity>
 
-            {step === 0 ? (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.buttonPrimary,
-                  !selectedTemplate && styles.buttonDisabled,
-                ]}
-                onPress={handleNext}
-                disabled={!selectedTemplate}
-              >
-                <Text
+              {step === 1 ? (
+                <TouchableOpacity
                   style={[
-                    styles.buttonText,
-                    !selectedTemplate && styles.textDisabled,
+                    styles.button,
+                    styles.buttonPrimary,
+                    !selectedTemplate && styles.buttonDisabled,
                   ]}
+                  onPress={handleNext}
+                  disabled={!selectedTemplate}
                 >
-                  Next
-                </Text>
-              </TouchableOpacity>
-            ) : step < steps.length - 2 ? (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
-                ]}
-                onPress={handleNext}
-                disabled={!canGoNext()}
-              >
-                <Text
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      !selectedTemplate && styles.textDisabled,
+                    ]}
+                  >
+                    Next
+                  </Text>
+                </TouchableOpacity>
+              ) : step < steps.length - 2 ? (
+                <TouchableOpacity
                   style={[
-                    styles.buttonText,
-                    !canGoNext() && styles.textDisabled,
+                    styles.button,
+                    canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
                   ]}
+                  onPress={handleNext}
+                  disabled={!canGoNext()}
                 >
-                  Next
-                </Text>
-              </TouchableOpacity>
-            ) : step === steps.length - 2 ? (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
-                ]}
-                onPress={handleNext}
-                disabled={!canGoNext()}
-              >
-                <Text
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      !canGoNext() && styles.textDisabled,
+                    ]}
+                  >
+                    Next
+                  </Text>
+                </TouchableOpacity>
+              ) : step === steps.length - 2 ? (
+                <TouchableOpacity
                   style={[
-                    styles.buttonText,
-                    !canGoNext() && styles.textDisabled,
+                    styles.button,
+                    canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
                   ]}
+                  onPress={handleNext}
+                  disabled={!canGoNext()}
                 >
-                  Preview
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      !canGoNext() && styles.textDisabled,
+                    ]}
+                  >
+                    Preview
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          )}
         </Animated.View>
 
-        <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
-          {steps.map((idx) => {
-            const done = idx < step;
-            const current = idx === step;
-            const isAccessible = idx <= step || (idx === step + 1 && canGoNext());
-            
-            return (
-              <React.Fragment key={idx}>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (isAccessible) {
-                      animateTo(idx);
-                    }
-                  }}
-                  style={[
-                    styles.circle,
-                    current && styles.circleCurrent,
-                    done && styles.circleDone,
-                    !isAccessible && { opacity: 0.5 },
-                  ]}
-                  disabled={!isAccessible}
-                >
-                  <Text style={styles.circleText}>{idx + 1}</Text>
-                </TouchableOpacity>
-                {idx < steps.length - 1 && (
-                  <View style={[styles.line, done && styles.lineDone]} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </View>
+        {step > 0 && (
+          <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
+            {steps.slice(1).map((idx, displayIndex) => {
+              const done = idx < step;
+              const current = idx === step;
+              const isAccessible = idx <= step || (idx === step + 1 && canGoNext());
+              
+              return (
+                <React.Fragment key={idx}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (isAccessible) {
+                        animateTo(idx);
+                      }
+                    }}
+                    style={[
+                      styles.circle,
+                      current && styles.circleCurrent,
+                      done && styles.circleDone,
+                      !isAccessible && { opacity: 0.5 },
+                    ]}
+                    disabled={!isAccessible}
+                  >
+                    <Text style={styles.circleText}>{displayIndex + 1}</Text>
+                  </TouchableOpacity>
+                  {idx < steps.length - 1 && (
+                    <View style={[styles.line, done && styles.lineDone]} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       {step === steps.length - 1 && (
@@ -414,5 +548,41 @@ const WizardForm = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const headerStyles = StyleSheet.create({
+  header: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingRight: 20,
+    paddingBottom: 10,
+  },
+  toggleContainer: {
+    width: 56,
+    height: 32,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  toggleSwitch: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    elevation: 3,
+  },
+});
 
 export default WizardForm;

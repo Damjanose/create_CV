@@ -13,6 +13,7 @@ interface WizardPreviewStepProps {
   address: any;
   skills: any[];
   languages: any[];
+  hobbies: any[];
   styles: any;
 }
 
@@ -25,6 +26,7 @@ const WizardPreviewStep = ({
   address,
   skills,
   languages,
+  hobbies,
   styles,
 }: WizardPreviewStepProps) => {
   let TemplateComponent: React.ComponentType<any> | null = null;
@@ -57,7 +59,7 @@ const WizardPreviewStep = ({
       imageUri: aboutMe.image,
       links: [],
       reference: { name: "", title: "", phone: "", email: "" },
-      hobbies: [],
+      hobbies: (hobbies || []).filter((h: string) => h && h.trim() !== ""),
       name: contact.name,
       lastname: contact.lastname,
       jobTitle: "",
@@ -65,7 +67,7 @@ const WizardPreviewStep = ({
       address,
       experience: timelineExperience,
       education: timelineEducation,
-      skills,
+      skills: (skills || []).filter((s: string) => s && s.trim() !== ""),
       languages,
     };
   } else if (selectedTemplate === "modern") {
@@ -82,7 +84,7 @@ const WizardPreviewStep = ({
         phone: contact.phone,
         imageUri: aboutMe.image,
       },
-      skills: { hard: skills, soft: [] },
+      skills: { hard: (skills || []).filter((s: string) => s && s.trim() !== ""), soft: [] },
       experience: experience.map((exp: any) => ({
         period: `${exp.startDate} – ${exp.endDate}`,
         company: exp.company,
@@ -116,7 +118,7 @@ const WizardPreviewStep = ({
       },
       experience,
       education,
-      skills,
+      skills: (skills || []).filter((s: string) => s && s.trim() !== ""),
       contact,
       address,
     };

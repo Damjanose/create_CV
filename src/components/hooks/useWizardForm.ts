@@ -49,7 +49,7 @@ export interface Template {
   description: string;
 }
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Animated,
@@ -58,11 +58,13 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 // @ts-ignore: No types for react-native-html-to-pdf
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import RNFS from "react-native-fs";
 
 const stepLabels = [
+  "Welcome",
   "Template",
   "About Me, Contact & Address",
   "Languages & Skills",
@@ -82,6 +84,7 @@ function getStyles(isDark: boolean) {
       backgroundColor: bg,
       alignItems: "center",
       paddingVertical: 24,
+      justifyContent: "center",
     },
     stepperContainer: {
       display: "none",
@@ -275,6 +278,7 @@ type UseWizardFormReturn = {
   fadeAnim: Animated.Value;
   colorScheme: ColorSchemeName;
   isDark: boolean;
+  toggleDarkMode: () => void;
   styles: ReturnType<typeof getStyles>;
   aboutMe: AboutMe;
   setAboutMe: React.Dispatch<React.SetStateAction<AboutMe>>;
@@ -290,6 +294,8 @@ type UseWizardFormReturn = {
   setEducation: React.Dispatch<React.SetStateAction<Education[]>>;
   skills: string[];
   setSkills: React.Dispatch<React.SetStateAction<string[]>>;
+  hobbies: string[];
+  setHobbies: React.Dispatch<React.SetStateAction<string[]>>;
   errors: AboutMeErrors | ExperienceErrors | EducationErrors;
   setErrors: React.Dispatch<
     React.SetStateAction<AboutMeErrors | ExperienceErrors | EducationErrors>
@@ -309,12 +315,42 @@ type UseWizardFormReturn = {
   handleDownloadPDF: () => Promise<void>;
 };
 
+const DARK_MODE_STORAGE_KEY = "@cv_creator_dark_mode";
+
 const useWizardForm = (): UseWizardFormReturn => {
   const [step, setStep] = useState<number>(0);
   const [fadeAnim] = useState<Animated.Value>(() => new Animated.Value(1));
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const systemColorScheme = useColorScheme();
+  const [manualDarkMode, setManualDarkMode] = useState<boolean | null>(null);
+  
+  // Load saved dark mode preference on mount
+  useEffect(() => {
+    const loadDarkModePreference = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(DARK_MODE_STORAGE_KEY);
+        if (saved !== null) {
+          setManualDarkMode(saved === "true");
+        }
+      } catch (error) {
+        // If error, use system preference
+      }
+    };
+    loadDarkModePreference();
+  }, []);
+
+  // Determine if dark mode should be used
+  const isDark = manualDarkMode !== null ? manualDarkMode : systemColorScheme === "dark";
   const styles = getStyles(isDark);
+
+  const toggleDarkMode = async () => {
+    const newDarkMode = !isDark;
+    setManualDarkMode(newDarkMode);
+    try {
+      await AsyncStorage.setItem(DARK_MODE_STORAGE_KEY, String(newDarkMode));
+    } catch (error) {
+      // Handle error silently
+    }
+  };
 
   const [aboutMe, setAboutMe] = useState<AboutMe>({
     summary:
@@ -338,6 +374,7 @@ const useWizardForm = (): UseWizardFormReturn => {
   const [experience, setExperience] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
+  const [hobbies, setHobbies] = useState<string[]>([]);
   const [errors, setErrors] = useState<
     AboutMeErrors | ExperienceErrors | EducationErrors
   >({});
@@ -349,6 +386,10 @@ const useWizardForm = (): UseWizardFormReturn => {
     setErrorMsg("");
     let valid = true;
     if (step === 0) {
+      // Welcome step - always allow to proceed
+      return true;
+    }
+    if (step === 1) {
       // Template selection step - must have a template selected
       if (!selectedTemplate) {
         setErrorMsg("Please select a template to continue.");
@@ -356,7 +397,7 @@ const useWizardForm = (): UseWizardFormReturn => {
       }
       return true;
     }
-    if (step === 1) {
+    if (step === 2) {
       // About Me step
       if (!aboutMe.summary || aboutMe.summary.trim() === "") valid = false;
       if (
@@ -371,7 +412,7 @@ const useWizardForm = (): UseWizardFormReturn => {
       if (!valid) setErrorMsg("Please fill all required fields.");
       return valid;
     }
-    if (step === 2) {
+    if (step === 3) {
       // Languages & Skills step
       if (languages.length === 0 || skills.length === 0) {
         setErrorMsg("Please add at least one language and one skill.");
@@ -383,10 +424,14 @@ const useWizardForm = (): UseWizardFormReturn => {
 
   const canGoNext = (): boolean => {
     if (step === 0) {
+      // Welcome step - always allow to proceed
+      return true;
+    }
+    if (step === 1) {
       // Template selection step
       return !!selectedTemplate;
     }
-    if (step === 1) {
+    if (step === 2) {
       // About Me step
       return !!(
         aboutMe.summary.trim() !== "" &&
@@ -399,7 +444,7 @@ const useWizardForm = (): UseWizardFormReturn => {
         address.address1
       );
     }
-    if (step === 2) {
+    if (step === 3) {
       // Languages & Skills step
       return languages.length > 0 && skills.length > 0;
     }
@@ -456,7 +501,7 @@ const useWizardForm = (): UseWizardFormReturn => {
               <div style="margin-bottom:20px;">
                 <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Skills</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                  ${skills.map((skill) => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join("")}
+                  ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join("")}
                 </div>
               </div>
             </div>
@@ -540,7 +585,7 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="margin-bottom:18px;">
               <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Skills</div>
               <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
-                ${skills.map((skill) => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join("")}
+                ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join("")}
               </div>
             </div>
           </div>
@@ -574,7 +619,7 @@ const useWizardForm = (): UseWizardFormReturn => {
         <div style="margin-bottom:24px;">
           <div style="font-size:14px;font-weight:bold;color:#000;margin-bottom:6px;">Skills</div>
           <ul style="padding-left:16px;margin:0;">
-            ${skills.map((skill) => `<li style="font-size:12px;color:#444;margin-bottom:4px;">${skill}</li>`).join("")}
+            ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<li style="font-size:12px;color:#444;margin-bottom:4px;">${skill}</li>`).join("")}
           </ul>
         </div>
 
@@ -690,8 +735,9 @@ const useWizardForm = (): UseWizardFormReturn => {
     step,
     setStep,
     fadeAnim,
-    colorScheme,
+    colorScheme: systemColorScheme,
     isDark,
+    toggleDarkMode,
     styles,
     aboutMe,
     setAboutMe,
@@ -707,6 +753,8 @@ const useWizardForm = (): UseWizardFormReturn => {
     setEducation,
     skills,
     setSkills,
+    hobbies,
+    setHobbies,
     errors,
     setErrors,
     errorMsg,
