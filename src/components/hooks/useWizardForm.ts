@@ -63,11 +63,11 @@ import RNHTMLtoPDF from "react-native-html-to-pdf";
 import RNFS from "react-native-fs";
 
 const stepLabels = [
+  "Template",
   "About Me, Contact & Address",
   "Languages & Skills",
   "Experience",
   "Education",
-  "Template",
   "Preview",
 ];
 function getStyles(isDark: boolean) {
@@ -342,13 +342,22 @@ const useWizardForm = (): UseWizardFormReturn => {
     AboutMeErrors | ExperienceErrors | EducationErrors
   >({});
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("classic");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const validateStep = (): boolean => {
     setErrorMsg("");
     let valid = true;
     if (step === 0) {
+      // Template selection step - must have a template selected
+      if (!selectedTemplate) {
+        setErrorMsg("Please select a template to continue.");
+        return false;
+      }
+      return true;
+    }
+    if (step === 1) {
+      // About Me step
       if (!aboutMe.summary || aboutMe.summary.trim() === "") valid = false;
       if (
         !contact.name ||
@@ -362,7 +371,8 @@ const useWizardForm = (): UseWizardFormReturn => {
       if (!valid) setErrorMsg("Please fill all required fields.");
       return valid;
     }
-    if (step === 1) {
+    if (step === 2) {
+      // Languages & Skills step
       if (languages.length === 0 || skills.length === 0) {
         setErrorMsg("Please add at least one language and one skill.");
         return false;
@@ -373,6 +383,11 @@ const useWizardForm = (): UseWizardFormReturn => {
 
   const canGoNext = (): boolean => {
     if (step === 0) {
+      // Template selection step
+      return !!selectedTemplate;
+    }
+    if (step === 1) {
+      // About Me step
       return !!(
         aboutMe.summary.trim() !== "" &&
         contact.name &&
@@ -384,7 +399,8 @@ const useWizardForm = (): UseWizardFormReturn => {
         address.address1
       );
     }
-    if (step === 1) {
+    if (step === 2) {
+      // Languages & Skills step
       return languages.length > 0 && skills.length > 0;
     }
     return true;

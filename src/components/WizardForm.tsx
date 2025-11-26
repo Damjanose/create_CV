@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Alert,
   Animated,
   Image,
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import {
 import RNFS from "react-native-fs";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { FloatingAction } from "react-native-floating-action";
+import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 
 import useWizardForm from "./hooks/useWizardForm";
 import AboutMeStep from "./wizardSteps/AboutMeStep";
@@ -24,11 +26,11 @@ import WizardPreviewStep from "./wizardSteps/WizardPreviewStep.tsx";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const stepLabels = [
+  "Template",
   "About Me, Contact & Address",
   "Languages & Skills",
   "Experience",
   "Education",
-  "Template",
   "Preview",
 ];
 const steps = Array.from({ length: stepLabels.length }, (_, i) => i);
@@ -102,7 +104,67 @@ const WizardForm = () => {
     animateTo,
   } = useWizardForm();
 
+  const requestPhotoPermission = async (): Promise<boolean> => {
+    let permission;
+    if (Platform.OS === "ios") {
+      permission = await check(PERMISSIONS.IOS.PHOTO_LIBRARY);
+      if (permission !== RESULTS.GRANTED) {
+        permission = await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
+      }
+    } else {
+      const version =
+        typeof Platform.Version === "string"
+          ? parseInt(Platform.Version, 10)
+          : Platform.Version;
+      if (version >= 33) {
+        permission = await check(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
+        if (permission !== RESULTS.GRANTED) {
+          permission = await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
+        }
+      } else {
+        permission = await check(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+        if (permission !== RESULTS.GRANTED) {
+          permission = await request(PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
+        }
+      }
+    }
+    if (permission !== RESULTS.GRANTED) {
+      Alert.alert(
+        "Permission Required",
+        "Please grant photo library access to upload a photo."
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const requestCameraPermission = async (): Promise<boolean> => {
+    let permission;
+    if (Platform.OS === "ios") {
+      permission = await check(PERMISSIONS.IOS.CAMERA);
+      if (permission !== RESULTS.GRANTED) {
+        permission = await request(PERMISSIONS.IOS.CAMERA);
+      }
+    } else {
+      permission = await check(PERMISSIONS.ANDROID.CAMERA);
+      if (permission !== RESULTS.GRANTED) {
+        permission = await request(PERMISSIONS.ANDROID.CAMERA);
+      }
+    }
+    if (permission !== RESULTS.GRANTED) {
+      Alert.alert(
+        "Permission Required",
+        "Please grant camera access to take a photo."
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleLaunchImageLibrary = async () => {
+    const hasPermission = await requestPhotoPermission();
+    if (!hasPermission) return;
+
     const response = await launchImageLibrary({
       mediaType: "photo",
       quality: 0.7,
@@ -118,6 +180,9 @@ const WizardForm = () => {
   };
 
   const handleLaunchCamera = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
     const response = await launchCamera({ mediaType: "photo", quality: 0.7 });
     if (response.assets && response.assets[0]?.uri) {
       const uri = response.assets[0].uri;
@@ -133,6 +198,14 @@ const WizardForm = () => {
     switch (step) {
       case 0:
         return (
+          <TemplateSelectStep
+            templates={TEMPLATES}
+            selectedTemplate={selectedTemplate}
+            setSelectedTemplate={setSelectedTemplate}
+          />
+        );
+      case 1:
+        return (
           <AboutMeStep
             aboutMe={aboutMe}
             contact={contact}
@@ -146,7 +219,7 @@ const WizardForm = () => {
             launchCamera={handleLaunchCamera}
           />
         );
-      case 1:
+      case 2:
         return (
           <LanguagesSkillsStep
             languages={languages}
@@ -157,7 +230,7 @@ const WizardForm = () => {
             isDark={isDark}
           />
         );
-      case 2:
+      case 3:
         return (
           <ExperienceStep
             experience={experience}
@@ -166,21 +239,13 @@ const WizardForm = () => {
             isDark={isDark}
           />
         );
-      case 3:
+      case 4:
         return (
           <EducationStep
             education={education}
             setEducation={setEducation}
             styles={styles}
             isDark={isDark}
-          />
-        );
-      case 4:
-        return (
-          <TemplateSelectStep
-            templates={TEMPLATES}
-            selectedTemplate={selectedTemplate}
-            setSelectedTemplate={setSelectedTemplate}
           />
         );
       case 5:
@@ -242,7 +307,26 @@ const WizardForm = () => {
               </Text>
             </TouchableOpacity>
 
-            {step < steps.length - 2 ? (
+            {step === 0 ? (
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.buttonPrimary,
+                  !selectedTemplate && styles.buttonDisabled,
+                ]}
+                onPress={handleNext}
+                disabled={!selectedTemplate}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    !selectedTemplate && styles.textDisabled,
+                  ]}
+                >
+                  Next
+                </Text>
+              </TouchableOpacity>
+            ) : step < steps.length - 2 ? (
               <TouchableOpacity
                 style={[
                   styles.button,
@@ -264,13 +348,19 @@ const WizardForm = () => {
               <TouchableOpacity
                 style={[
                   styles.button,
-                  styles.buttonPrimary,
-                  !selectedTemplate && styles.buttonDisabled,
+                  canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
                 ]}
                 onPress={handleNext}
-                disabled={!selectedTemplate}
+                disabled={!canGoNext()}
               >
-                <Text style={styles.buttonText}>Preview</Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    !canGoNext() && styles.textDisabled,
+                  ]}
+                >
+                  Preview
+                </Text>
               </TouchableOpacity>
             ) : null}
           </View>
