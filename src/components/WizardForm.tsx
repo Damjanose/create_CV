@@ -284,6 +284,8 @@ const WizardForm = () => {
             isDark={isDark}
             onCreateResume={handleNext}
             onUploadResume={handleUploadResume}
+            toggleDarkMode={toggleDarkMode}
+            toggleAnim={toggleAnim}
           />
         );
       case 1:
@@ -361,149 +363,36 @@ const WizardForm = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-    >
-      {step === 0 && (
-        <View style={[headerStyles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            style={[
-              headerStyles.toggleContainer,
-              {
-                backgroundColor: isDark ? "#2A2D35" : "#E8E8E8",
-              },
-            ]}
-            onPress={toggleDarkMode}
-            activeOpacity={0.8}
-          >
-            <Animated.View
+    <>
+      {step === steps.length - 1 ? (
+        // Preview step - render without KeyboardAvoidingView and ScrollView to allow proper scrolling
+        <View style={{ flex: 1 }}>
+          <View style={[styles.buttonRow, { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 }]}>
+            <TouchableOpacity
               style={[
-                headerStyles.toggleSwitch,
-                {
-                  transform: [
-                    {
-                      translateX: toggleAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [2, 22],
-                      }),
-                    },
-                  ],
-                  backgroundColor: isDark ? "#4F8EF7" : "#FFD700",
-                },
+                styles.button,
+                styles.buttonSecondary,
               ]}
+              onPress={handleBack}
             >
-              <MaterialCommunityIcons
-                name={isDark ? "weather-night" : "weather-sunny"}
-                size={18}
-                color={isDark ? "#FFF" : "#333"}
-              />
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
-      )}
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-          {errorMsg ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMsg}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.content}>{renderStepContent()}</View>
-
-          {step > 0 && (
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
+              <Text
                 style={[
-                  styles.button,
-                  styles.buttonSecondary,
-                  step === 0 && styles.buttonDisabled,
+                  styles.buttonText,
+                  styles.textSecondary,
                 ]}
-                onPress={handleBack}
-                disabled={step === 0}
               >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    styles.textSecondary,
-                    step === 0 && styles.textDisabled,
-                  ]}
-                >
-                  Back
-                </Text>
-              </TouchableOpacity>
-
-              {step === 1 ? (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.buttonPrimary,
-                    !selectedTemplate && styles.buttonDisabled,
-                  ]}
-                  onPress={handleNext}
-                  disabled={!selectedTemplate}
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      !selectedTemplate && styles.textDisabled,
-                    ]}
-                  >
-                    Next
-                  </Text>
-                </TouchableOpacity>
-              ) : step < steps.length - 2 ? (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
-                  ]}
-                  onPress={handleNext}
-                  disabled={!canGoNext()}
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      !canGoNext() && styles.textDisabled,
-                    ]}
-                  >
-                    Next
-                  </Text>
-                </TouchableOpacity>
-              ) : step === steps.length - 2 ? (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
-                  ]}
-                  onPress={handleNext}
-                  disabled={!canGoNext()}
-                >
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      !canGoNext() && styles.textDisabled,
-                    ]}
-                  >
-                    Preview
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          )}
-        </Animated.View>
-
-        {step > 0 && (
+                Back
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {renderStepContent()}
+          
+          {/* Stepper indicators for preview step - show all steps 1-7 */}
           <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
-            {steps.slice(1).map((idx, displayIndex) => {
+            {steps.map((idx, displayIndex) => {
               const done = idx < step;
               const current = idx === step;
-              const isAccessible = idx <= step || (idx === step + 1 && canGoNext());
+              const isAccessible = idx <= step;
               
               return (
                 <React.Fragment key={idx}>
@@ -530,8 +419,144 @@ const WizardForm = () => {
               );
             })}
           </View>
-        )}
-      </ScrollView>
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+        >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
+            {errorMsg ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.content}>{renderStepContent()}</View>
+
+            {step > 0 && (
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.buttonSecondary,
+                    step === 0 && styles.buttonDisabled,
+                  ]}
+                  onPress={handleBack}
+                  disabled={step === 0}
+                >
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      styles.textSecondary,
+                      step === 0 && styles.textDisabled,
+                    ]}
+                  >
+                    Back
+                  </Text>
+                </TouchableOpacity>
+
+                {step === 1 ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      styles.buttonPrimary,
+                      !selectedTemplate && styles.buttonDisabled,
+                    ]}
+                    onPress={handleNext}
+                    disabled={!selectedTemplate}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        !selectedTemplate && styles.textDisabled,
+                      ]}
+                    >
+                      Next
+                    </Text>
+                  </TouchableOpacity>
+                ) : step < steps.length - 2 ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                    ]}
+                    onPress={handleNext}
+                    disabled={!canGoNext()}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        !canGoNext() && styles.textDisabled,
+                      ]}
+                    >
+                      Next
+                    </Text>
+                  </TouchableOpacity>
+                ) : step === steps.length - 2 ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                    ]}
+                    onPress={handleNext}
+                    disabled={!canGoNext()}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        !canGoNext() && styles.textDisabled,
+                      ]}
+                    >
+                      Preview
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            )}
+          </Animated.View>
+
+          {step > 0 && (
+            <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
+              {steps.map((idx, displayIndex) => {
+                const done = idx < step;
+                const current = idx === step;
+                const isAccessible = idx <= step || (idx === step + 1 && canGoNext());
+                
+                return (
+                  <React.Fragment key={idx}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (isAccessible) {
+                          animateTo(idx);
+                        }
+                      }}
+                      style={[
+                        styles.circle,
+                        current && styles.circleCurrent,
+                        done && styles.circleDone,
+                        !isAccessible && { opacity: 0.5 },
+                      ]}
+                      disabled={!isAccessible}
+                    >
+                      <Text style={styles.circleText}>{displayIndex + 1}</Text>
+                    </TouchableOpacity>
+                    {idx < steps.length - 1 && (
+                      <View style={[styles.line, done && styles.lineDone]} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+        </KeyboardAvoidingView>
+      )}
 
       {step === steps.length - 1 && (
         <FloatingAction
@@ -545,7 +570,7 @@ const WizardForm = () => {
           distanceToEdge={{ vertical: 82, horizontal: 20 }}
         />
       )}
-    </KeyboardAvoidingView>
+    </>
   );
 };
 

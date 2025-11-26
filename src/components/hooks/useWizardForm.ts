@@ -51,7 +51,7 @@ export interface Template {
   description: string;
 }
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Alert,
   Animated,
@@ -60,7 +60,6 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 // @ts-ignore: No types for react-native-html-to-pdf
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import RNFS from "react-native-fs";
@@ -317,41 +316,19 @@ type UseWizardFormReturn = {
   handleDownloadPDF: () => Promise<void>;
 };
 
-const DARK_MODE_STORAGE_KEY = "@cv_creator_dark_mode";
-
 const useWizardForm = (): UseWizardFormReturn => {
   const [step, setStep] = useState<number>(0);
   const [fadeAnim] = useState<Animated.Value>(() => new Animated.Value(1));
   const systemColorScheme = useColorScheme();
   const [manualDarkMode, setManualDarkMode] = useState<boolean | null>(null);
-  
-  // Load saved dark mode preference on mount
-  useEffect(() => {
-    const loadDarkModePreference = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(DARK_MODE_STORAGE_KEY);
-        if (saved !== null) {
-          setManualDarkMode(saved === "true");
-        }
-      } catch (error) {
-        // If error, use system preference
-      }
-    };
-    loadDarkModePreference();
-  }, []);
 
-  // Determine if dark mode should be used
+  // Determine if dark mode should be used - default to system theme
   const isDark = manualDarkMode !== null ? manualDarkMode : systemColorScheme === "dark";
   const styles = getStyles(isDark);
 
-  const toggleDarkMode = async () => {
+  const toggleDarkMode = () => {
     const newDarkMode = !isDark;
     setManualDarkMode(newDarkMode);
-    try {
-      await AsyncStorage.setItem(DARK_MODE_STORAGE_KEY, String(newDarkMode));
-    } catch (error) {
-      // Handle error silently
-    }
   };
 
   const [aboutMe, setAboutMe] = useState<AboutMe>({
@@ -482,224 +459,208 @@ const useWizardForm = (): UseWizardFormReturn => {
     let html = "";
     let imageHtml = "";
     if (imageBase64) {
-      imageHtml = `<div style='text-align:center;margin-bottom:16px;'><img src='data:image/jpeg;base64,${imageBase64}' style='width:100px;height:100px;border-radius:50px;object-fit:cover;background:#eee;'/></div>`;
+      imageHtml = `<img src='data:image/jpeg;base64,${imageBase64}' style='width:40px;height:40px;border-radius:20px;object-fit:cover;background:#eee;display:block;margin:0 auto 5px;'/>`;
     }
     if (selectedTemplate === "classic") {
+      // ClassicTemplate: Dark sidebar with white text, light content area - matching preview exactly
       html = `
-        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#fff;border-radius:12px;border:1px solid #e0e0e0;overflow:hidden;">
-          ${imageHtml}
-          <h1 style="font-size:32px;font-weight:bold;text-align:center;color:#222;margin:12px 0 0 0;">${contact.name} ${contact.lastname}</h1>
-          <div style="display:flex;flex-direction:row;gap:24px;margin-top:24px;">
-            <div style="flex:1;padding-right:12px;">
-              <div style="margin-bottom:20px;">
-                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Contact</div>
-                <div style="font-size:14px;font-weight:600;margin-top:6px;">Email</div>
-                <div style="font-size:14px;color:#555;">${contact.email}</div>
-                <div style="font-size:14px;font-weight:600;margin-top:6px;">Phone</div>
-                <div style="font-size:14px;color:#555;">${contact.phone}</div>
-                <div style="font-size:14px;font-weight:600;margin-top:6px;">Address</div>
-                <div style="font-size:14px;color:#555;">${address.address1}, ${address.cityName}, ${address.countryName}</div>
+        <div style="width:210mm;min-height:297mm;margin:auto;font-family:sans-serif;background:#fff;display:flex;flex-direction:row;">
+          <!-- Sidebar -->
+          <div style="width:25mm;background:#232323;padding:5px;color:#fff;">
+            ${imageHtml}
+            <div style="font-size:8pt;font-weight:bold;text-align:center;margin-bottom:5px;color:#fff;">${contact.name} ${contact.lastname}</div>
+            <div style="font-size:6pt;text-align:center;color:#ccc;margin-bottom:6px;"></div>
+            
+            <div style="font-weight:600;color:#fff;font-size:6.5pt;margin-top:7px;margin-bottom:3px;">Contact</div>
+            <div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">${contact.email}</div>
+            <div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">${contact.phone}</div>
+            <div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">${address.cityName}, ${address.countryName}</div>
+            
+            <div style="font-weight:600;color:#fff;font-size:6.5pt;margin-top:7px;margin-bottom:3px;">Skills</div>
+            ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">• ${skill}</div>`).join("")}
+            
+            <div style="font-weight:600;color:#fff;font-size:6.5pt;margin-top:7px;margin-bottom:3px;">Languages</div>
+            ${languages.map((lang) => `<div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">${lang.name} – ${Math.round(lang.level * 100)}%</div>`).join("")}
+            
+            ${hobbies && hobbies.length > 0 && hobbies.some(h => h && h.trim() !== "") ? `
+              <div style="font-weight:600;color:#fff;font-size:6.5pt;margin-top:7px;margin-bottom:3px;">Hobbies</div>
+              ${hobbies.filter(h => h && h.trim() !== "").map((h) => `<div style="font-size:5.5pt;color:#ddd;margin-bottom:2px;">• ${h}</div>`).join("")}
+            ` : ""}
+          </div>
+          
+          <!-- Content -->
+          <div style="flex:1;padding:8px;">
+            <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Profile</div>
+            <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
+            <div style="font-size:6pt;color:#333;line-height:9pt;margin-bottom:8px;">${aboutMe.summary}</div>
+            
+            <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Work Experience</div>
+            <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
+            ${experience.map((exp) => {
+              const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+              return `
+              <div style="margin-bottom:8px;">
+                <div style="font-size:7pt;font-weight:600;color:#000;">${exp.jobTitle}</div>
+                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${exp.company} (${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate})</div>
+                ${bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")}
               </div>
-              <div style="margin-bottom:20px;">
-                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Skills</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                  ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<span style='background:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:12px;color:#333;margin-bottom:6px;'>${skill}</span>`).join("")}
-                </div>
+            `;
+            }).join("")}
+            
+            <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Education</div>
+            <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
+            ${education.map((edu) => {
+              const bullets = edu.description ? edu.description.split("\n").filter(Boolean) : [];
+              return `
+              <div style="margin-bottom:8px;">
+                <div style="font-size:7pt;font-weight:600;color:#000;">${edu.degree}</div>
+                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${edu.school} (${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate})</div>
+                ${bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")}
               </div>
-            </div>
-            <div style="flex:2;padding-left:12px;">
-              <div style="margin-bottom:20px;">
-                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Summary</div>
-                <div style="font-size:14px;color:#555;line-height:20px;">${aboutMe.summary}</div>
-              </div>
-              <div style="margin-bottom:20px;">
-                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Experience</div>
-                ${experience
-                  .map(
-                    (exp) => `
-                  <div style='margin-bottom:12px;'>
-                    <div style='font-size:16px;font-weight:600;color:#333;'>${exp.jobTitle}</div>
-                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${exp.company} | ${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate}</div>
-                    <div style='font-size:14px;color:#555;line-height:20px;'>${exp.description}</div>
-                  </div>
-                `,
-                  )
-                  .join("")}
-              </div>
-              <div style="margin-bottom:20px;">
-                <div style="font-size:20px;font-weight:600;color:#1976D2;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">Education</div>
-                ${education
-                  .map(
-                    (edu) => `
-                  <div style='margin-bottom:12px;'>
-                    <div style='font-size:16px;font-weight:600;color:#333;'>${edu.degree}</div>
-                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${edu.school} | ${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}</div>
-                    <div style='font-size:14px;color:#555;line-height:20px;'>${edu.description}</div>
-                  </div>
-                `,
-                  )
-                  .join("")}
-              </div>
-            </div>
+            `;
+            }).join("")}
           </div>
         </div>
       `;
     } else if (selectedTemplate === "modern") {
+      // ModernTemplate: Header with name/lastname, contact row, sections - matching preview exactly
+      const locationStr = `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`.trim();
       html = `
-        <div style="max-width:800px;margin:auto;font-family:sans-serif;background:#f7f9fa;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;display:flex;flex-direction:row;">
-          <div style="width:16px;background:#1976D2;"></div>
-          <div style="flex:1;padding:24px;">
-            ${imageHtml}
-            <div style='font-size:30px;font-weight:bold;color:#1976D2;margin-bottom:4px;text-align:center;'>${contact.name} ${contact.lastname}</div>
-            <div style='font-size:14px;color:#555;margin-bottom:18px;text-align:center;'>${contact.email} | ${contact.phone} | ${address.address1}, ${address.cityName}, ${address.countryName}</div>
-            <div style="margin-bottom:18px;">
-              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Summary</div>
-              <div style="font-size:14px;color:#222;line-height:20px;">${aboutMe.summary}</div>
+        <div style="width:210mm;min-height:297mm;margin:auto;font-family:serif;background:#fff;padding:12px;">
+          <!-- Header -->
+          <div style="display:flex;flex-direction:row;margin-bottom:8px;">
+            <div style="flex:1;">
+              <div style="font-size:10pt;color:#666;font-family:serif;">${contact.name}</div>
+              <div style="font-size:10pt;font-weight:bold;color:#000;font-family:serif;">${contact.lastname}</div>
+              <div style="font-size:6pt;font-style:italic;color:#444;margin-bottom:4px;"></div>
+              <div style="font-size:6pt;color:#333;line-height:9pt;">${aboutMe.summary}</div>
             </div>
-            <div style="margin-bottom:18px;">
-              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Experience</div>
-              ${experience
-                .map(
-                  (exp) => `
-                <div style='margin-bottom:10px;'>
-                  <div style='font-size:15px;font-weight:600;color:#333;'>${exp.jobTitle} <span style='color:#1976D2;font-weight:bold;'>@</span> ${exp.company}</div>
-                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${exp.startDate} - ${exp.ongoing ? "Present" : exp.endDate}</div>
-                  <div style='font-size:14px;color:#222;'>${exp.description}</div>
+            ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:40px;height:40px;border-radius:20px;object-fit:cover;background:#eee;margin-left:8px;'/>` : ""}
+          </div>
+          
+          <!-- Contact Row -->
+          <div style="display:flex;flex-direction:row;justify-content:center;margin:6px 0;">
+            <div style="font-size:5pt;color:#333;margin:0 6px;">${contact.email}</div>
+            <div style="font-size:5pt;color:#333;margin:0 6px;">${locationStr}</div>
+            <div style="font-size:5pt;color:#333;margin:0 6px;">${contact.phone}</div>
+          </div>
+          
+          <!-- Divider -->
+          <div style="height:1px;background:#000;margin:6px 0;"></div>
+          
+          <!-- Languages -->
+          ${languages.length > 0 ? `
+            <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Languages</div>
+            <div style="display:flex;flex-direction:row;justify-content:space-between;margin-bottom:8px;">
+              ${languages.map((lang) => `
+                <div style="flex:1;margin:0 3px;">
+                  <div style="font-size:5pt;margin-bottom:2px;color:#333;">${lang.label}</div>
+                  <div style="display:flex;flex-direction:row;height:3px;background:#EEE;border-radius:2px;">
+                    <div style="width:${lang.level * 100}%;background:#333;border-radius:2px;"></div>
+                    <div style="flex:1;"></div>
+                  </div>
                 </div>
-              `,
-                )
-                .join("")}
+              `).join("")}
             </div>
-            <div style="margin-bottom:18px;">
-              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Education</div>
-              ${education
-                .map(
-                  (edu) => `
-                <div style='margin-bottom:10px;'>
-                  <div style='font-size:15px;font-weight:600;color:#333;'>${edu.degree}, ${edu.school}</div>
-                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${edu.startDate} - ${edu.ongoing ? "Present" : edu.endDate}</div>
-                  <div style='font-size:14px;color:#222;'>${edu.description}</div>
-                </div>
-              `,
-                )
-                .join("")}
-            </div>
-            <div style="margin-bottom:18px;">
-              <div style="font-size:18px;font-weight:bold;color:#1976D2;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Skills</div>
-              <div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;'>
-                ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<span style='background:#e3eafc;color:#1976D2;padding:2px 8px;border-radius:10px;margin-right:6px;margin-bottom:6px;font-weight:bold;font-size:13px;'>${skill}</span>`).join("")}
+          ` : ""}
+          
+          <!-- Education -->
+          ${education.length > 0 ? `
+            <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Education</div>
+            ${education.map((edu) => {
+              const period = `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`;
+              return `
+              <div style="margin-bottom:6px;">
+                <div style="font-size:6.5pt;font-weight:600;color:#111;">${edu.degree}</div>
+                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${edu.school} (${period})</div>
               </div>
+            `;
+            }).join("")}
+          ` : ""}
+          
+          <!-- Skills -->
+          ${skills.filter((skill) => skill && skill.trim() !== "").length > 0 ? `
+            <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Skills</div>
+            <div style="font-size:5.5pt;color:#333;margin-left:6px;margin-bottom:2px;">
+              <span style="font-weight:600;">Hard:</span> ${skills.filter((skill) => skill && skill.trim() !== "").join(", ")}
+            </div>
+            <div style="font-size:5.5pt;color:#333;margin-left:6px;margin-bottom:2px;">
+              <span style="font-weight:600;">Soft:</span> 
+            </div>
+          ` : ""}
+          
+          <!-- Experience -->
+          ${experience.length > 0 ? `
+            <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Professional Experience</div>
+            ${experience.map((exp) => {
+              const period = `${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate}`;
+              const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+              return `
+              <div style="margin-bottom:6px;">
+                <div style="font-size:6.5pt;font-weight:600;color:#111;">${exp.jobTitle}</div>
+                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${exp.company} (${period})</div>
+                ${bullets.map((b) => `<div style="font-size:5.5pt;color:#333;margin-left:6px;margin-bottom:2px;">• ${b}</div>`).join("")}
+              </div>
+            `;
+            }).join("")}
+          ` : ""}
+        </div>
+      `;
+    } else {
+      // MinimalTemplate: Green header, sidebar with skills/languages, content area - matching preview exactly
+      const addressStr = `${address.address1}, ${address.cityName}, ${address.countryName}`;
+      html = `
+        <div style="width:210mm;min-height:297mm;margin:auto;font-family:sans-serif;background:#fff;display:flex;flex-direction:column;">
+          <!-- Header -->
+          <div style="background:#3DF8C8;padding:10px;text-align:center;">
+            ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:40px;height:40px;border-radius:20px;object-fit:cover;background:#EEE;display:block;margin:0 auto 5px;'/>` : ""}
+            <div style="font-size:8pt;font-weight:bold;color:#000;">${contact.name} ${contact.lastname}</div>
+            <div style="font-size:6pt;color:#111;font-weight:600;margin:2px 0;text-align:center;">${aboutMe.summary}</div>
+            <div style="font-size:5.5pt;color:#222;margin-bottom:1px;">${addressStr}</div>
+            <div style="font-size:5.5pt;color:#222;margin-bottom:1px;">${contact.phone}</div>
+            <div style="font-size:5.5pt;color:#222;">${contact.email}</div>
+          </div>
+          
+          <!-- Body -->
+          <div style="display:flex;flex-direction:row;flex:1;">
+            <!-- Sidebar -->
+            <div style="width:25mm;background:#f5f5f5;padding:5px;">
+              <div style="font-weight:600;color:#111;font-size:6.5pt;margin-top:7px;margin-bottom:3px;">Skills</div>
+              ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<div style="font-size:5.5pt;color:#333;margin-bottom:2px;">• ${skill}</div>`).join("")}
+              
+              ${languages.length > 0 ? `
+                <div style="font-weight:600;color:#111;font-size:6.5pt;margin-top:8px;margin-bottom:3px;">Languages</div>
+                ${languages.map((lang) => `<div style="font-size:5.5pt;color:#333;margin-bottom:2px;">${lang.name} – ${Math.round(lang.level * 100)}%</div>`).join("")}
+              ` : ""}
+            </div>
+            
+            <!-- Content -->
+            <div style="flex:1;padding:8px;">
+              <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Experience</div>
+              <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
+              ${experience.map((exp) => `
+                <div style="margin-bottom:8px;">
+                  <div style="font-size:7pt;font-weight:600;color:#000;">${exp.jobTitle}</div>
+                  <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${exp.company} (${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate})</div>
+                  <div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${exp.description}</div>
+                </div>
+              `).join("")}
+              
+              <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Education</div>
+              <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
+              ${education.map((edu) => `
+                <div style="margin-bottom:8px;">
+                  <div style="font-size:7pt;font-weight:600;color:#000;">${edu.degree}</div>
+                  <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${edu.school} (${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate})</div>
+                  <div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${edu.description}</div>
+                </div>
+              `).join("")}
             </div>
           </div>
         </div>
       `;
-    } else {
-      html = `
-      <div style="width:595px;height:842px;margin:auto;padding:40px;box-sizing:border-box;background:#fff;border:1px solid #ccc;font-family:sans-serif;">
-    <!-- Header -->
-    <div style="display:flex;flex-direction:row;align-items:center;background:#3DF8C8;padding:20px;border-radius:6px;margin-bottom:24px;">
-      ${
-        imageBase64
-          ? `
-        <div style="flex-shrink:0;margin-right:16px;">
-          <img src="data:image/jpeg;base64,${imageBase64}" style="width:80px;height:80px;border-radius:40px;object-fit:cover;background:#eee;" />
-        </div>`
-          : ""
-      }
-      <div>
-        <div style="font-size:20px;font-weight:bold;color:#000;">${contact.name} ${contact.lastname}</div>
-        <div style="font-size:14px;color:#222;">${aboutMe.summary?.split(" ").slice(0, 4).join(" ") || "Professional Title"}</div>
-        <div style="font-size:12px;color:#111;margin-top:6px;">${address.address1}, ${address.cityName}, ${address.countryName}</div>
-        <div style="font-size:12px;color:#111;">${contact.phone} | ${contact.email}</div>
-      </div>
-    </div>
-
-    <!-- Body -->
-    <div style="display:flex;flex-direction:row;gap:20px;">
-      <!-- Left Column -->
-      <div style="width:170px;">
-        <div style="margin-bottom:24px;">
-          <div style="font-size:14px;font-weight:bold;color:#000;margin-bottom:6px;">Skills</div>
-          <ul style="padding-left:16px;margin:0;">
-            ${skills.filter((skill) => skill && skill.trim() !== "").map((skill) => `<li style="font-size:12px;color:#444;margin-bottom:4px;">${skill}</li>`).join("")}
-          </ul>
-        </div>
-
-        <div>
-          <div style="font-size:14px;font-weight:bold;color:#000;margin-bottom:6px;">Languages</div>
-          ${languages
-            .map(
-              (lang) => `
-            <div style="margin-bottom:10px;">
-              <div style="font-size:12px;color:#444;">${lang.name}</div>
-              <div style="height:5px;background:#eee;border-radius:4px;overflow:hidden;margin-top:3px;">
-                <div style="width:${(lang.level / 3) * 100}%;background:#333;height:100%;border-radius:4px;"></div>
-              </div>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
-      </div>
-
-      <!-- Right Column -->
-      <div style="flex:1;">
-        <div style="margin-bottom:16px;">
-          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Profile</div>
-          <div style="font-size:12px;line-height:1.5;color:#333;">${aboutMe.summary}</div>
-        </div>
-
-        <div style="margin-bottom:16px;">
-          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Experience</div>
-          ${experience
-            .map(
-              (exp) => `
-            <div style="margin-bottom:12px;">
-              <div style="font-size:13px;font-weight:600;color:#222;">${exp.jobTitle}, ${exp.company}</div>
-              <div style="font-size:11px;color:#666;">${exp.startDate} — ${exp.ongoing ? "Present" : exp.endDate}</div>
-              <ul style="padding-left:18px;margin:4px 0;">
-                ${exp.description
-                  ?.split("\n")
-                  .map(
-                    (line) =>
-                      `<li style="font-size:11px;color:#444;">${line}</li>`,
-                  )
-                  .join("")}
-              </ul>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
-
-        <div>
-          <div style="font-size:16px;font-weight:bold;color:#000;margin-bottom:6px;">Education</div>
-          ${education
-            .map(
-              (edu) => `
-            <div style="margin-bottom:12px;">
-              <div style="font-size:13px;font-weight:600;color:#222;">${edu.degree}, ${edu.school}</div>
-              <div style="font-size:11px;color:#666;">${edu.startDate} — ${edu.ongoing ? "Present" : edu.endDate}</div>
-              <ul style="padding-left:18px;margin:4px 0;">
-                ${edu.description
-                  ?.split("\n")
-                  .map(
-                    (line) =>
-                      `<li style="font-size:11px;color:#444;">${line}</li>`,
-                  )
-                  .join("")}
-              </ul>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
-      </div>
-    </div>
-  </div>
-      `;
     }
-    return `<html><body style='font-family:sans-serif;padding:24px;background:#f2f4f8;'>${html}</body></html>`;
+    return `<html><head><meta charset="UTF-8"><style>@page { size: A4; margin: 0; }</style></head><body style='margin:0;padding:0;font-family:sans-serif;'>${html}</body></html>`;
   };
 
   const handleDownloadPDF = async (): Promise<void> => {
@@ -719,6 +680,7 @@ const useWizardForm = (): UseWizardFormReturn => {
         html,
         fileName: safeName,
         directory: "Documents",
+        base64: false,
       });
       let destPath = file.filePath;
       if (!destPath) throw new Error("PDF file path not found");

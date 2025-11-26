@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 interface AboutMe {
   name: string;
@@ -69,7 +69,14 @@ const MinimalTemplate: React.FC<Props> = ({
   address,
 }) => {
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <ScrollView 
+      style={{ flex: 1 }} 
+      contentContainerStyle={styles.scroll}
+      nestedScrollEnabled={true}
+      showsVerticalScrollIndicator={true}
+      bounces={true}
+      scrollEnabled={true}
+    >
       <View style={styles.a4}>
         <View style={styles.header}>
           <Image source={getImageSource(aboutMe)} style={styles.avatar} />
@@ -138,14 +145,14 @@ const MinimalTemplate: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   scroll: {
-    flexGrow: 1,
     alignItems: "center",
     paddingVertical: 32,
+    paddingBottom: 100,
     backgroundColor: "#bbb",
   },
   a4: {
     width: 300,
-    aspectRatio: 1 / 1.414,
+    minHeight: 424, // A4 height (300 * 1.414)
     backgroundColor: "#fff",
     borderRadius: 4,
     shadowColor: "#000",
@@ -153,7 +160,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 3,
     elevation: 2,
-    overflow: "hidden",
   },
   row: {
     flexDirection: "row",

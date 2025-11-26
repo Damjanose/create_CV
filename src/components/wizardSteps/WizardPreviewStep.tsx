@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import ClassicTemplate from "../../screens/templates/ClassicTemplate.tsx";
 import ModernTemplate from "../../screens/templates/ModernTemplate.tsx";
 import MinimalTemplate from "../../screens/templates/MinimalTemplate.tsx";
@@ -128,24 +128,22 @@ const WizardPreviewStep = ({
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f2f4f8" }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}>
-        {TemplateComponent ? (
-          <TemplateComponent {...templateProps} />
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 32,
-            }}
-          >
-            <Text style={{ color: "#888", fontSize: 18 }}>
-              No template selected.
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+      {TemplateComponent ? (
+        <TemplateComponent {...templateProps} />
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <Text style={{ color: "#888", fontSize: 18 }}>
+            No template selected.
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
