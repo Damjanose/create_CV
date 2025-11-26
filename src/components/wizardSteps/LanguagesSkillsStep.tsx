@@ -252,7 +252,7 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
                 />
                 <TextInput
                   style={[styles.input, formStyles.languageInput]}
-                  placeholder="Language name (e.g., English, Spanish)"
+                  placeholder="Language name"
                   value={lang.name}
                   onChangeText={(name) => {
                     setLanguages((prev) => {
@@ -318,6 +318,7 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
             }
             return null;
           })}
+          {skills.length === 0 && renderSkillItem("", 0)}
         </View>
       </View>
 
@@ -340,6 +341,7 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
             }
             return null;
           })}
+          {hobbies.length === 0 && renderHobbyItem("", 0)}
         </View>
       </View>
     </View>

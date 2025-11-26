@@ -18,6 +18,7 @@ interface Experience {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 
 interface Education {
@@ -26,6 +27,7 @@ interface Education {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 
 interface Props {
@@ -110,7 +112,7 @@ const MinimalTemplate: React.FC<Props> = ({
               <View key={i} style={styles.block}>
                 <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
                 <Text style={styles.meta}>
-                  {exp.company} ({exp.startDate} – {exp.endDate})
+                  {exp.company} ({exp.startDate} – {exp.ongoing ? "Present" : exp.endDate})
                 </Text>
                 <Text style={styles.bullet}>• {exp.description}</Text>
               </View>
@@ -122,7 +124,7 @@ const MinimalTemplate: React.FC<Props> = ({
               <View key={i} style={styles.block}>
                 <Text style={styles.blockTitle}>{edu.degree}</Text>
                 <Text style={styles.meta}>
-                  {edu.school} ({edu.startDate} – {edu.endDate})
+                  {edu.school} ({edu.startDate} – {edu.ongoing ? "Present" : edu.endDate})
                 </Text>
                 <Text style={styles.bullet}>• {edu.description}</Text>
               </View>

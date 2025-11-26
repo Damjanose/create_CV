@@ -19,6 +19,7 @@ interface Experience {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 
 interface ExperienceStepProps {
@@ -220,9 +221,11 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({
                 {
                   backgroundColor: isDark ? "rgba(79, 142, 247, 0.15)" : "rgba(25, 118, 210, 0.1)",
                   borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
+                  opacity: exp.ongoing ? 0.5 : 1,
                 },
               ]}
-              onPress={() => setShowEndPicker(idx)}
+              onPress={() => !exp.ongoing && setShowEndPicker(idx)}
+              disabled={exp.ongoing}
             >
               <MaterialCommunityIcons
                 name="calendar-end"
@@ -232,13 +235,48 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({
               <Text
                 style={[
                   formStyles.dateButtonText,
-                  { color: exp.endDate ? (isDark ? "#FFF" : "#222") : (isDark ? "#888" : "#999") },
+                  { color: exp.ongoing ? (isDark ? "#888" : "#999") : (exp.endDate ? (isDark ? "#FFF" : "#222") : (isDark ? "#888" : "#999")) },
                 ]}
               >
-                {exp.endDate || "End Date"}
+                {exp.ongoing ? "Present" : (exp.endDate || "End Date")}
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={formStyles.ongoingContainer}
+            onPress={() => {
+              setExperience((prev) => {
+                const newExp = [...prev];
+                const isOngoing = !newExp[idx].ongoing;
+                newExp[idx] = { 
+                  ...newExp[idx], 
+                  ongoing: isOngoing,
+                  endDate: isOngoing ? "" : newExp[idx].endDate,
+                };
+                return newExp;
+              });
+            }}
+          >
+            <View
+              style={[
+                formStyles.checkbox,
+                {
+                  backgroundColor: exp.ongoing
+                    ? isDark ? "#4F8EF7" : "#1976D2"
+                    : "transparent",
+                  borderColor: isDark ? "#4F8EF7" : "#1976D2",
+                },
+              ]}
+            >
+              {exp.ongoing && (
+                <MaterialCommunityIcons name="check" size={16} color="#fff" />
+              )}
+            </View>
+            <Text style={[formStyles.ongoingText, { color: isDark ? "#FFF" : "#222" }]}>
+              Ongoing
+            </Text>
+          </TouchableOpacity>
 
           <View style={formStyles.inputContainer}>
             <MaterialCommunityIcons
@@ -247,21 +285,23 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({
               color={isDark ? "#4F8EF7" : "#1976D2"}
               style={formStyles.inputIcon}
             />
-            <TextInput
-              style={[styles.input, formStyles.textArea]}
-              placeholder="Job description, responsibilities, achievements..."
-              value={exp.description}
-              onChangeText={(description) => {
-                setExperience((prev) => {
-                  const newExp = [...prev];
-                  newExp[idx] = { ...newExp[idx], description };
-                  return newExp;
-                });
-              }}
-              multiline
-              textAlignVertical="top"
-              placeholderTextColor={isDark ? "#888" : "#999"}
-            />
+            <View style={formStyles.textAreaContainer}>
+              <TextInput
+                style={[styles.input, formStyles.textArea]}
+                placeholder="Job description, responsibilities, achievements..."
+                value={exp.description}
+                onChangeText={(description) => {
+                  setExperience((prev) => {
+                    const newExp = [...prev];
+                    newExp[idx] = { ...newExp[idx], description };
+                    return newExp;
+                  });
+                }}
+                multiline
+                textAlignVertical="top"
+                placeholderTextColor={isDark ? "#888" : "#999"}
+              />
+            </View>
           </View>
         </View>
       ))}
@@ -374,6 +414,7 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({
               startDate: "",
               endDate: "",
               description: "",
+              ongoing: false,
             },
           ])
         }
@@ -453,10 +494,14 @@ const formStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+  textAreaContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
   textArea: {
-    height: 100,
+    minHeight: 60,
+    maxHeight: 100,
     paddingTop: 12,
-    minHeight: 100,
   },
   addButton: {
     flexDirection: "row",
@@ -508,6 +553,25 @@ const formStyles = StyleSheet.create({
   },
   iosPicker: {
     height: 200,
+  },
+  ongoingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  ongoingText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
 

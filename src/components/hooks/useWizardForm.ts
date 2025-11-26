@@ -26,6 +26,7 @@ export interface Experience {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 export interface Education {
   school: string;
@@ -33,6 +34,7 @@ export interface Education {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 export interface AboutMeErrors {
   [key: string]: boolean;
@@ -373,8 +375,8 @@ const useWizardForm = (): UseWizardFormReturn => {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [experience, setExperience] = useState<Experience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [hobbies, setHobbies] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([""]);
+  const [hobbies, setHobbies] = useState<string[]>([""]);
   const [errors, setErrors] = useState<
     AboutMeErrors | ExperienceErrors | EducationErrors
   >({});
@@ -517,7 +519,7 @@ const useWizardForm = (): UseWizardFormReturn => {
                     (exp) => `
                   <div style='margin-bottom:12px;'>
                     <div style='font-size:16px;font-weight:600;color:#333;'>${exp.jobTitle}</div>
-                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${exp.company} | ${exp.startDate} – ${exp.endDate}</div>
+                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${exp.company} | ${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate}</div>
                     <div style='font-size:14px;color:#555;line-height:20px;'>${exp.description}</div>
                   </div>
                 `,
@@ -531,7 +533,7 @@ const useWizardForm = (): UseWizardFormReturn => {
                     (edu) => `
                   <div style='margin-bottom:12px;'>
                     <div style='font-size:16px;font-weight:600;color:#333;'>${edu.degree}</div>
-                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${edu.school} | ${edu.startDate} – ${edu.endDate}</div>
+                    <div style='font-size:14px;color:#777;margin-bottom:4px;'>${edu.school} | ${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}</div>
                     <div style='font-size:14px;color:#555;line-height:20px;'>${edu.description}</div>
                   </div>
                 `,
@@ -561,7 +563,7 @@ const useWizardForm = (): UseWizardFormReturn => {
                   (exp) => `
                 <div style='margin-bottom:10px;'>
                   <div style='font-size:15px;font-weight:600;color:#333;'>${exp.jobTitle} <span style='color:#1976D2;font-weight:bold;'>@</span> ${exp.company}</div>
-                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${exp.startDate} - ${exp.endDate}</div>
+                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${exp.startDate} - ${exp.ongoing ? "Present" : exp.endDate}</div>
                   <div style='font-size:14px;color:#222;'>${exp.description}</div>
                 </div>
               `,
@@ -575,7 +577,7 @@ const useWizardForm = (): UseWizardFormReturn => {
                   (edu) => `
                 <div style='margin-bottom:10px;'>
                   <div style='font-size:15px;font-weight:600;color:#333;'>${edu.degree}, ${edu.school}</div>
-                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${edu.startDate} - ${edu.endDate}</div>
+                  <div style='font-size:13px;color:#888;margin-bottom:2px;'>${edu.startDate} - ${edu.ongoing ? "Present" : edu.endDate}</div>
                   <div style='font-size:14px;color:#222;'>${edu.description}</div>
                 </div>
               `,
@@ -654,7 +656,7 @@ const useWizardForm = (): UseWizardFormReturn => {
               (exp) => `
             <div style="margin-bottom:12px;">
               <div style="font-size:13px;font-weight:600;color:#222;">${exp.jobTitle}, ${exp.company}</div>
-              <div style="font-size:11px;color:#666;">${exp.startDate} — ${exp.endDate}</div>
+              <div style="font-size:11px;color:#666;">${exp.startDate} — ${exp.ongoing ? "Present" : exp.endDate}</div>
               <ul style="padding-left:18px;margin:4px 0;">
                 ${exp.description
                   ?.split("\n")
@@ -677,7 +679,7 @@ const useWizardForm = (): UseWizardFormReturn => {
               (edu) => `
             <div style="margin-bottom:12px;">
               <div style="font-size:13px;font-weight:600;color:#222;">${edu.degree}, ${edu.school}</div>
-              <div style="font-size:11px;color:#666;">${edu.startDate} — ${edu.endDate}</div>
+              <div style="font-size:11px;color:#666;">${edu.startDate} — ${edu.ongoing ? "Present" : edu.endDate}</div>
               <ul style="padding-left:18px;margin:4px 0;">
                 ${edu.description
                   ?.split("\n")

@@ -38,7 +38,7 @@ const WizardPreviewStep = ({
       company: exp.company,
       location: "",
       startDate: exp.startDate,
-      endDate: exp.endDate,
+      endDate: exp.ongoing ? "Present" : exp.endDate,
       position: exp.jobTitle,
       bullets: exp.description
         ? exp.description.split("\n").filter(Boolean)
@@ -47,7 +47,7 @@ const WizardPreviewStep = ({
     const timelineEducation = education.map((edu: any) => ({
       institution: edu.school,
       location: "",
-      year: `${edu.startDate} – ${edu.endDate}`,
+      year: `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`,
       degree: edu.degree,
       bullets: edu.description
         ? edu.description.split("\n").filter(Boolean)
@@ -86,7 +86,7 @@ const WizardPreviewStep = ({
       },
       skills: { hard: (skills || []).filter((s: string) => s && s.trim() !== ""), soft: [] },
       experience: experience.map((exp: any) => ({
-        period: `${exp.startDate} – ${exp.endDate}`,
+        period: `${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate}`,
         company: exp.company,
         role: exp.jobTitle,
         bullets: exp.description
@@ -94,7 +94,7 @@ const WizardPreviewStep = ({
           : [],
       })),
       education: education.map((edu: any) => ({
-        period: `${edu.startDate} – ${edu.endDate}`,
+        period: `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`,
         location: "",
         degree: edu.degree,
         school: edu.school,

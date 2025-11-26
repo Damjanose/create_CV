@@ -97,12 +97,16 @@ const ClassicTemplate: React.FC<Props> = ({
             </Text>
           ))}
 
-          <Text style={styles.sectionTitle}>Hobbies</Text>
-          {hobbies.map((h, i) => (
-            <Text key={i} style={styles.text}>
-              • {h}
-            </Text>
-          ))}
+          {hobbies && hobbies.length > 0 && hobbies.some(h => h && h.trim() !== "") && (
+            <>
+              <Text style={styles.sectionTitle}>Hobbies</Text>
+              {hobbies.filter(h => h && h.trim() !== "").map((h, i) => (
+                <Text key={i} style={styles.text}>
+                  • {h}
+                </Text>
+              ))}
+            </>
+          )}
         </View>
 
         {/* Content */}
