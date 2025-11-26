@@ -10,10 +10,6 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import DraggableFlatList, {
-  RenderItemParams,
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface Language {
@@ -85,156 +81,138 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
 
   // Ensure there's always an empty item at the end for adding new skills/hobbies
   const getItemsWithEmpty = (items: string[]): string[] => {
-    return [...items, ""];
+    // Only add empty item if the last item is not already empty
+    if (items.length === 0 || items[items.length - 1].trim() !== "") {
+      return [...items, ""];
+    }
+    return items;
   };
 
   const handleSkillChange = (index: number, value: string) => {
-    const itemsWithEmpty = getItemsWithEmpty(skills);
-    const newItems = [...itemsWithEmpty];
-    newItems[index] = value;
-    
-    // Remove empty items except the last one
-    const filtered = newItems.filter((item, idx) => item.trim() !== "" || idx === newItems.length - 1);
-    setSkills(filtered.length > 0 && filtered[filtered.length - 1] === "" 
-      ? filtered.slice(0, -1) 
-      : filtered.length > 0 
-        ? [...filtered, ""] 
-        : [""]);
+    setSkills((prev) => {
+      // Filter out all empty items first
+      const nonEmpty = prev.filter(item => item.trim() !== "");
+      
+      if (value.trim() === "") {
+        // If value is empty, just ensure we have one empty item
+        return nonEmpty.length > 0 ? [...nonEmpty, ""] : [""];
+      }
+      
+      // Update or add the item
+      const newItems = [...nonEmpty];
+      if (index < newItems.length) {
+        newItems[index] = value;
+      } else {
+        newItems.push(value);
+      }
+      
+      // Always add exactly one empty item at the end
+      return [...newItems, ""];
+    });
   };
 
   const handleHobbyChange = (index: number, value: string) => {
-    const itemsWithEmpty = getItemsWithEmpty(hobbies);
-    const newItems = [...itemsWithEmpty];
-    newItems[index] = value;
-    
-    // Remove empty items except the last one
-    const filtered = newItems.filter((item, idx) => item.trim() !== "" || idx === newItems.length - 1);
-    setHobbies(filtered.length > 0 && filtered[filtered.length - 1] === "" 
-      ? filtered.slice(0, -1) 
-      : filtered.length > 0 
-        ? [...filtered, ""] 
-        : [""]);
+    setHobbies((prev) => {
+      // Filter out all empty items first
+      const nonEmpty = prev.filter(item => item.trim() !== "");
+      
+      if (value.trim() === "") {
+        // If value is empty, just ensure we have one empty item
+        return nonEmpty.length > 0 ? [...nonEmpty, ""] : [""];
+      }
+      
+      // Update or add the item
+      const newItems = [...nonEmpty];
+      if (index < newItems.length) {
+        newItems[index] = value;
+      } else {
+        newItems.push(value);
+      }
+      
+      // Always add exactly one empty item at the end
+      return [...newItems, ""];
+    });
   };
 
-  const handleSkillDragEnd = ({ data }: { data: string[] }) => {
-    // Remove empty item if it exists, then add it back at the end
-    const filtered = data.filter(item => item.trim() !== "");
-    setSkills([...filtered, ""]);
-  };
-
-  const handleHobbyDragEnd = ({ data }: { data: string[] }) => {
-    // Remove empty item if it exists, then add it back at the end
-    const filtered = data.filter(item => item.trim() !== "");
-    setHobbies([...filtered, ""]);
-  };
-
-  const renderSkillItem = ({ item, index, drag, isActive }: RenderItemParams<string>) => {
-    const isLast = index === skills.length;
+  const renderSkillItem = (item: string, index: number) => {
     const isEmpty = item.trim() === "";
 
     return (
-      <ScaleDecorator>
-        <TouchableOpacity
-          activeOpacity={1}
-          onLongPress={!isEmpty ? drag : undefined}
-          disabled={isActive || isEmpty}
-          style={[
-            formStyles.skillChip,
-            {
-              backgroundColor: isDark ? "rgba(79, 142, 247, 0.15)" : "rgba(25, 118, 210, 0.1)",
-              borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
-              opacity: isActive ? 0.8 : 1,
-            },
-          ]}
-        >
-          {!isEmpty && (
-            <TouchableOpacity
-              onLongPress={drag}
-              style={formStyles.dragHandle}
-            >
-              <MaterialCommunityIcons
-                name="drag"
-                size={18}
-                color={isDark ? "#4F8EF7" : "#1976D2"}
-              />
-            </TouchableOpacity>
-          )}
-          <TextInput
-            style={[formStyles.skillInput, { color: isDark ? "#FFF" : "#222" }]}
-            placeholder={isEmpty ? "Add skill..." : "Skill"}
-            value={item}
-            onChangeText={(val) => handleSkillChange(index, val)}
-            placeholderTextColor={isDark ? "#888" : "#999"}
-            editable={!isActive}
-          />
-          {!isEmpty && (
-            <TouchableOpacity
-              style={formStyles.chipDeleteButton}
-              onPress={() => {
-                const newSkills = skills.filter((_, i) => i !== index);
-                setSkills(newSkills.length > 0 ? [...newSkills, ""] : [""]);
-              }}
-            >
-              <MaterialCommunityIcons name="close" size={18} color="#E53935" />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
-      </ScaleDecorator>
+      <View
+        key={`skill-${index}`}
+        style={[
+          formStyles.skillChip,
+          {
+            backgroundColor: isDark ? "rgba(79, 142, 247, 0.15)" : "rgba(25, 118, 210, 0.1)",
+            borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
+          },
+        ]}
+      >
+        <TextInput
+          style={[formStyles.skillInput, { color: isDark ? "#FFF" : "#222" }]}
+          placeholder={isEmpty ? "Add skill..." : "Skill"}
+          value={item}
+          onChangeText={(val) => handleSkillChange(index, val)}
+          placeholderTextColor={isDark ? "#888" : "#999"}
+          multiline
+          textAlignVertical="top"
+        />
+        {!isEmpty && (
+          <TouchableOpacity
+            style={formStyles.chipDeleteButton}
+            onPress={() => {
+              setSkills((prev) => {
+                // Remove the item at this index, filter out all empty items, then add one empty
+                const filtered = prev.filter((_, i) => i !== index).filter(item => item.trim() !== "");
+                return filtered.length > 0 ? [...filtered, ""] : [""];
+              });
+            }}
+          >
+            <MaterialCommunityIcons name="close" size={18} color="#E53935" />
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
-  const renderHobbyItem = ({ item, index, drag, isActive }: RenderItemParams<string>) => {
-    const isLast = index === hobbies.length;
+  const renderHobbyItem = (item: string, index: number) => {
     const isEmpty = item.trim() === "";
 
     return (
-      <ScaleDecorator>
-        <TouchableOpacity
-          activeOpacity={1}
-          onLongPress={!isEmpty ? drag : undefined}
-          disabled={isActive || isEmpty}
-          style={[
-            formStyles.skillChip,
-            {
-              backgroundColor: isDark ? "rgba(79, 142, 247, 0.15)" : "rgba(25, 118, 210, 0.1)",
-              borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
-              opacity: isActive ? 0.8 : 1,
-            },
-          ]}
-        >
-          {!isEmpty && (
-            <TouchableOpacity
-              onLongPress={drag}
-              style={formStyles.dragHandle}
-            >
-              <MaterialCommunityIcons
-                name="drag"
-                size={18}
-                color={isDark ? "#4F8EF7" : "#1976D2"}
-              />
-            </TouchableOpacity>
-          )}
-          <TextInput
-            style={[formStyles.skillInput, { color: isDark ? "#FFF" : "#222" }]}
-            placeholder={isEmpty ? "Add hobby..." : "Hobby"}
-            value={item}
-            onChangeText={(val) => handleHobbyChange(index, val)}
-            placeholderTextColor={isDark ? "#888" : "#999"}
-            editable={!isActive}
-          />
-          {!isEmpty && (
-            <TouchableOpacity
-              style={formStyles.chipDeleteButton}
-              onPress={() => {
-                const newHobbies = hobbies.filter((_, i) => i !== index);
-                setHobbies(newHobbies.length > 0 ? [...newHobbies, ""] : [""]);
-              }}
-            >
-              <MaterialCommunityIcons name="close" size={18} color="#E53935" />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
-      </ScaleDecorator>
+      <View
+        key={`hobby-${index}`}
+        style={[
+          formStyles.skillChip,
+          {
+            backgroundColor: isDark ? "rgba(79, 142, 247, 0.15)" : "rgba(25, 118, 210, 0.1)",
+            borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
+          },
+        ]}
+      >
+        <TextInput
+          style={[formStyles.skillInput, { color: isDark ? "#FFF" : "#222" }]}
+          placeholder={isEmpty ? "Add hobby..." : "Hobby"}
+          value={item}
+          onChangeText={(val) => handleHobbyChange(index, val)}
+          placeholderTextColor={isDark ? "#888" : "#999"}
+          multiline
+          textAlignVertical="top"
+        />
+        {!isEmpty && (
+          <TouchableOpacity
+            style={formStyles.chipDeleteButton}
+            onPress={() => {
+              setHobbies((prev) => {
+                // Remove the item at this index, filter out all empty items, then add one empty
+                const filtered = prev.filter((_, i) => i !== index).filter(item => item.trim() !== "");
+                return filtered.length > 0 ? [...filtered, ""] : [""];
+              });
+            }}
+          >
+            <MaterialCommunityIcons name="close" size={18} color="#E53935" />
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
@@ -330,20 +308,17 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
             color={isDark ? "#4F8EF7" : "#1976D2"}
           />
           <Text style={[styles.label, formStyles.sectionTitle]}>Skills</Text>
-          <Text style={[formStyles.hintText, { color: isDark ? "#888" : "#666" }]}>
-            (Long press to reorder)
-          </Text>
         </View>
 
-        <DraggableFlatList
-          data={getItemsWithEmpty(skills)}
-          onDragEnd={handleSkillDragEnd}
-          keyExtractor={(item, index) => `skill-${index}`}
-          renderItem={renderSkillItem}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={formStyles.draggableContainer}
-        />
+        <View style={formStyles.chipsContainer}>
+          {skills.map((item, index) => {
+            // Only render non-empty items, or the last item if it's empty
+            if (item.trim() !== "" || index === skills.length - 1) {
+              return renderSkillItem(item, index);
+            }
+            return null;
+          })}
+        </View>
       </View>
 
       {/* Hobbies Section */}
@@ -355,20 +330,17 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
             color={isDark ? "#4F8EF7" : "#1976D2"}
           />
           <Text style={[styles.label, formStyles.sectionTitle]}>Hobbies</Text>
-          <Text style={[formStyles.hintText, { color: isDark ? "#888" : "#666" }]}>
-            (Long press to reorder)
-          </Text>
         </View>
 
-        <DraggableFlatList
-          data={getItemsWithEmpty(hobbies)}
-          onDragEnd={handleHobbyDragEnd}
-          keyExtractor={(item, index) => `hobby-${index}`}
-          renderItem={renderHobbyItem}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={formStyles.draggableContainer}
-        />
+        <View style={formStyles.chipsContainer}>
+          {hobbies.map((item, index) => {
+            // Only render non-empty items, or the last item if it's empty
+            if (item.trim() !== "" || index === hobbies.length - 1) {
+              return renderHobbyItem(item, index);
+            }
+            return null;
+          })}
+        </View>
       </View>
     </View>
   );
@@ -457,30 +429,29 @@ const formStyles = StyleSheet.create({
     fontStyle: "italic",
     marginLeft: 4,
   },
-  draggableContainer: {
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingVertical: 4,
+    width: "100%",
   },
   skillChip: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    minWidth: 100,
     marginRight: 8,
     marginBottom: 8,
-  },
-  dragHandle: {
-    marginRight: 6,
-    padding: 2,
+    alignSelf: "flex-start",
   },
   skillInput: {
-    flex: 1,
     fontSize: 14,
     fontWeight: "500",
     padding: 0,
-    minWidth: 60,
+    minWidth: 40,
+    flexShrink: 1,
   },
   chipDeleteButton: {
     marginLeft: 6,
