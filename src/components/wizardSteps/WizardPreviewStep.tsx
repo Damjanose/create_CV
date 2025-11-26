@@ -114,7 +114,7 @@ const WizardPreviewStep = ({
         email: contact.email,
         phone: contact.phone,
         address: `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`,
-        languages: languages.map((l: any) => l.name),
+        languages: languages,
       },
       experience,
       education,
