@@ -12,9 +12,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
+  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { WebView } from "react-native-webview";
 
 import RNFS from "react-native-fs";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
@@ -83,6 +85,7 @@ const TEMPLATES: Template[] = [
 const WizardForm = () => {
   const insets = useSafeAreaInsets();
   const [uploadProgress, setUploadProgress] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const {
     step,
     setStep,
@@ -114,7 +117,24 @@ const WizardForm = () => {
     handleBack,
     handleDownloadPDF,
     animateTo,
+    // New features
+    isGeneratingPdf,
+    showPdfPreview,
+    setShowPdfPreview,
+    pdfPreviewHtml,
+    handleConfirmDownload,
+    hasDraft,
+    loadDraft,
+    clearDraft,
+    lastSaved,
   } = useWizardForm();
+
+  // Show draft prompt when app loads and draft exists
+  useEffect(() => {
+    if (hasDraft && step === 0) {
+      setShowDraftPrompt(true);
+    }
+  }, [hasDraft]);
 
   // Animation for toggle switch
   const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
@@ -229,153 +249,333 @@ const WizardForm = () => {
       languages: [],
     };
 
-    // Extract email
-    const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    // Normalize text - fix common PDF extraction issues
+    let normalizedText = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+
+    console.log("Normalized text for parsing:", normalizedText.substring(0, 1000));
+
+    // ========== EXTRACT EMAIL ==========
+    const emailMatch = normalizedText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/i);
     if (emailMatch) {
-      parsedData.contact.email = emailMatch[0];
+      parsedData.contact.email = emailMatch[0].toLowerCase();
+      console.log("Found email:", parsedData.contact.email);
     }
 
-    // Extract phone (various formats)
-    const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\d{10,}/);
-    if (phoneMatch) {
-      parsedData.contact.phone = phoneMatch[0].trim();
-    }
-
-    // Extract name (usually first line or before email)
-    const lines = text.split("\n").filter((line) => line.trim().length > 0);
-    if (lines.length > 0) {
-      const firstLine = lines[0].trim();
-      // If first line doesn't contain email/phone, it's likely the name
-      if (!firstLine.includes("@") && !firstLine.match(/\d{10,}/)) {
-        const nameParts = firstLine.split(/\s+/);
-        if (nameParts.length >= 2) {
-          parsedData.contact.name = nameParts[0];
-          parsedData.contact.lastname = nameParts.slice(1).join(" ");
-        } else {
-          parsedData.contact.name = firstLine;
+    // ========== EXTRACT PHONE ==========
+    // Match various phone formats including international
+    const phonePatterns = [
+      /\+\d{1,3}[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}/g, // International format
+      /\(\+\d{1,3}\)\s*\d{6,}/g, // (+355) 696243358 format
+      /\+\d{10,15}/g, // +355696243358 format
+      /\d{3}[\s\-]?\d{3}[\s\-]?\d{4}/g, // US format
+      /\d{10,}/g, // Plain digits
+    ];
+    
+    for (const pattern of phonePatterns) {
+      const phoneMatch = normalizedText.match(pattern);
+      if (phoneMatch) {
+        // Clean the phone number
+        let phone = phoneMatch[0].replace(/[^\d+\-\(\)\s]/g, '').trim();
+        if (phone.length >= 7) {
+          parsedData.contact.phone = phone;
+          console.log("Found phone:", parsedData.contact.phone);
+          break;
         }
       }
     }
 
-    // Try to find name near email/phone
-    if (!parsedData.contact.name && emailMatch) {
-      const emailIndex = text.indexOf(emailMatch[0]);
-      const beforeEmail = text.substring(Math.max(0, emailIndex - 200), emailIndex);
-      const nameLines = beforeEmail.split("\n").filter((line) => line.trim().length > 0);
-      if (nameLines.length > 0) {
-        const nameLine = nameLines[nameLines.length - 1].trim();
-        const nameParts = nameLine.split(/\s+/);
-        if (nameParts.length >= 2 && nameParts.length <= 4) {
-          parsedData.contact.name = nameParts[0];
-          parsedData.contact.lastname = nameParts.slice(1).join(" ");
-        }
-      }
-    }
-
-    // Extract summary/about me (text before Experience/Education sections)
-    const experienceIndex = text.search(/\b(Experience|Work Experience|Employment|Professional Experience)\b/i);
-    const educationIndex = text.search(/\b(Education|Academic|Qualifications)\b/i);
-    const summaryEnd = Math.min(
-      experienceIndex > 0 ? experienceIndex : text.length,
-      educationIndex > 0 ? educationIndex : text.length
-    );
-    if (summaryEnd > 100) {
-      const summaryText = text.substring(0, summaryEnd).trim();
-      // Remove name, email, phone from summary
-      let cleanSummary = summaryText
-        .replace(new RegExp(parsedData.contact.name, "gi"), "")
-        .replace(new RegExp(parsedData.contact.lastname, "gi"), "")
-        .replace(new RegExp(parsedData.contact.email, "gi"), "")
-        .replace(new RegExp(parsedData.contact.phone, "gi"), "");
-      // Take first 2-3 sentences
-      const sentences = cleanSummary.match(/[^.!?]+[.!?]+/g);
-      if (sentences && sentences.length > 0) {
-        parsedData.aboutMe.summary = sentences.slice(0, 3).join(" ").trim();
-      }
-    }
-
-    // Extract experience entries
-    const experienceSection = text.match(/\b(Experience|Work Experience|Employment|Professional Experience)\b[\s\S]*?(?=\b(Education|Skills|Languages|$)\b)/i);
-    if (experienceSection) {
-      const expText = experienceSection[0];
-      // Try to find job entries (common patterns)
-      const jobPatterns = [
-        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*[-–—]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*[\(]?([^\)]+)[\)]?\s*([0-9]{4}|[A-Z][a-z]+\s+[0-9]{4})/gi,
-        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+at\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi,
-      ];
+    // ========== EXTRACT NAME ==========
+    // Strategy 1: Look for name patterns at the beginning
+    const lines = normalizedText.split(/\n/).filter(line => line.trim().length > 0);
+    
+    // Common section headers to skip
+    const sectionHeaders = /^(contact|about|summary|profile|experience|work|education|skills|languages|hobbies|interests|objective|curriculum vitae|cv|resume)/i;
+    
+    // Try to find name in first few meaningful lines
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+      const line = lines[i].trim();
       
-      // Simple extraction: look for lines with dates
-      const datePattern = /([0-9]{4}|[A-Z][a-z]+\s+[0-9]{4})\s*[-–—]\s*([0-9]{4}|Present|Current)/gi;
-      const lines = expText.split("\n");
+      // Skip if it looks like a section header
+      if (sectionHeaders.test(line)) continue;
+      
+      // Skip if it contains email or phone
+      if (line.includes('@') || /\d{5,}/.test(line)) continue;
+      
+      // Skip if it's too short or too long
+      if (line.length < 3 || line.length > 50) continue;
+      
+      // Check if it looks like a name (2-4 words, capitalized)
+      const words = line.split(/\s+/).filter(w => w.length > 0);
+      if (words.length >= 2 && words.length <= 4) {
+        // Check if words look like names (start with capital, mostly letters)
+        const looksLikeName = words.every(word => 
+          /^[A-Z][a-z]*$/.test(word) || /^[A-Z]+$/.test(word)
+        );
+        
+        if (looksLikeName || i === 0) {
+          parsedData.contact.name = words[0];
+          parsedData.contact.lastname = words.slice(1).join(' ');
+          console.log("Found name:", parsedData.contact.name, parsedData.contact.lastname);
+          break;
+        }
+      }
+    }
+
+    // Strategy 2: If no name found, look near email
+    if (!parsedData.contact.name && emailMatch) {
+      const emailIndex = normalizedText.indexOf(emailMatch[0]);
+      const textBeforeEmail = normalizedText.substring(Math.max(0, emailIndex - 100), emailIndex);
+      const nameCandidate = textBeforeEmail.match(/([A-Z][a-z]+)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+      if (nameCandidate) {
+        parsedData.contact.name = nameCandidate[1];
+        parsedData.contact.lastname = nameCandidate[2];
+        console.log("Found name near email:", parsedData.contact.name, parsedData.contact.lastname);
+      }
+    }
+
+    // ========== EXTRACT ADDRESS/LOCATION ==========
+    // Look for location patterns
+    const locationPatterns = [
+      /(?:location|address|based in|living in|residing in)[:\s]*([A-Za-z\s,]+)/i,
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g, // City, Country pattern
+    ];
+    
+    // Common country names to help identify locations
+    const countries = ['Albania', 'USA', 'UK', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Poland', 'Czech', 'Romania', 'Bulgaria', 'Greece', 'Turkey', 'Russia', 'Ukraine', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Portugal', 'Hungary', 'Croatia', 'Serbia', 'Slovenia', 'Slovakia', 'Kosovo', 'North Macedonia', 'Montenegro', 'Bosnia'];
+    
+    for (const country of countries) {
+      const countryRegex = new RegExp(`([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)[,\\s]+${country}`, 'i');
+      const match = normalizedText.match(countryRegex);
+      if (match) {
+        parsedData.address.cityName = match[1].trim();
+        parsedData.address.countryName = country;
+        console.log("Found location:", parsedData.address.cityName, parsedData.address.countryName);
+        break;
+      }
+    }
+
+    // ========== EXTRACT SUMMARY/ABOUT ME ==========
+    // Look for summary section
+    const summaryPatterns = [
+      /(?:summary|about me|profile|objective|professional summary)[:\s]*\n?([^]*?)(?=\n(?:experience|work|education|skills|languages|$))/i,
+      /(?:summary|about me|profile|objective)[:\s]*([^]*?)(?=\n[A-Z])/i,
+    ];
+    
+    for (const pattern of summaryPatterns) {
+      const summaryMatch = normalizedText.match(pattern);
+      if (summaryMatch && summaryMatch[1]) {
+        let summary = summaryMatch[1]
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // Take first 500 characters max
+        if (summary.length > 500) {
+          summary = summary.substring(0, 500) + '...';
+        }
+        
+        if (summary.length > 20) {
+          parsedData.aboutMe.summary = summary;
+          console.log("Found summary:", summary.substring(0, 100));
+          break;
+        }
+      }
+    }
+
+    // ========== EXTRACT EXPERIENCE ==========
+    const experienceSection = normalizedText.match(
+      /(?:experience|work experience|employment|professional experience|work history)[:\s]*\n?([^]*?)(?=\n(?:education|skills|languages|hobbies|interests|$))/i
+    );
+    
+    if (experienceSection && experienceSection[1]) {
+      const expText = experienceSection[1];
+      console.log("Experience section found:", expText.substring(0, 300));
+      
+      // Pattern to match job entries
+      // Look for patterns like: "Job Title at Company" or "Job Title - Company" or date ranges
+      const dateRangePattern = /(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/gi;
+      
+      // Split by date ranges to find job entries
+      const parts = expText.split(dateRangePattern);
       let currentExp: any = null;
       
-      lines.forEach((line) => {
-        const dateMatch = line.match(datePattern);
-        if (dateMatch && line.length > 10) {
-          if (currentExp) {
-            parsedData.experience.push(currentExp);
+      // Simpler approach: look for lines with dates and extract job info
+      const expLines = expText.split(/\n/).filter(l => l.trim());
+      let jobBuffer: string[] = [];
+      
+      for (let i = 0; i < expLines.length; i++) {
+        const line = expLines[i].trim();
+        const hasDate = /\d{4}/.test(line) || /present|current/i.test(line);
+        
+        if (hasDate && line.length > 10) {
+          // This might be a job entry header
+          if (currentExp && (currentExp.jobTitle || currentExp.company)) {
+            currentExp.description = jobBuffer.join('\n').trim();
+            if (currentExp.jobTitle || currentExp.company) {
+              parsedData.experience.push(currentExp);
+            }
+            jobBuffer = [];
           }
-          const parts = line.split(/[-–—]/);
+          
+          // Parse the job line
+          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
+          
+          // Remove dates from line to get job title and company
+          let jobInfo = line.replace(dateRangePattern, '').trim();
+          jobInfo = jobInfo.replace(/[-–—•]/g, ' ').trim();
+          
+          const jobParts = jobInfo.split(/\s+at\s+|\s+@\s+|\s+-\s+|\s+,\s+/i);
+          
           currentExp = {
-            jobTitle: parts[0]?.trim() || "",
-            company: parts[1]?.trim() || "",
-            startDate: dateMatch[0].split(/[-–—]/)[0]?.trim() || "",
-            endDate: dateMatch[0].split(/[-–—]/)[1]?.trim() || "Present",
-            ongoing: dateMatch[0].includes("Present") || dateMatch[0].includes("Current"),
-            description: "",
+            jobTitle: jobParts[0]?.trim() || '',
+            company: jobParts[1]?.trim() || jobParts[0]?.trim() || '',
+            startDate: dateMatch ? dateMatch[1] : '',
+            endDate: dateMatch ? dateMatch[2] : 'Present',
+            ongoing: dateMatch ? /present|current|now/i.test(dateMatch[2]) : false,
+            description: '',
           };
-        } else if (currentExp && line.trim().length > 5) {
-          currentExp.description += (currentExp.description ? "\n" : "") + line.trim();
+        } else if (currentExp && line.length > 5) {
+          // This is description content
+          jobBuffer.push(line);
         }
-      });
-      if (currentExp) {
+      }
+      
+      // Don't forget the last job
+      if (currentExp && (currentExp.jobTitle || currentExp.company)) {
+        currentExp.description = jobBuffer.join('\n').trim();
         parsedData.experience.push(currentExp);
       }
+      
+      console.log("Parsed experience entries:", parsedData.experience.length);
     }
 
-    // Extract education entries
-    const educationSection = text.match(/\b(Education|Academic|Qualifications)\b[\s\S]*?(?=\b(Experience|Skills|Languages|$)\b)/i);
-    if (educationSection) {
-      const eduText = educationSection[0];
-      const datePattern = /([0-9]{4}|[A-Z][a-z]+\s+[0-9]{4})\s*[-–—]\s*([0-9]{4}|Present|Current)/gi;
-      const lines = eduText.split("\n");
-      let currentEdu: any = null;
+    // ========== EXTRACT EDUCATION ==========
+    const educationSection = normalizedText.match(
+      /(?:education|academic|qualifications|academic background)[:\s]*\n?([^]*?)(?=\n(?:experience|skills|languages|hobbies|interests|work|$))/i
+    );
+    
+    if (educationSection && educationSection[1]) {
+      const eduText = educationSection[1];
+      console.log("Education section found:", eduText.substring(0, 300));
       
-      lines.forEach((line) => {
-        const dateMatch = line.match(datePattern);
-        if (dateMatch && line.length > 10) {
-          if (currentEdu) {
+      const eduLines = eduText.split(/\n/).filter(l => l.trim());
+      let currentEdu: any = null;
+      let eduBuffer: string[] = [];
+      
+      for (let i = 0; i < eduLines.length; i++) {
+        const line = eduLines[i].trim();
+        const hasDate = /\d{4}/.test(line) || /present|current/i.test(line);
+        
+        if (hasDate && line.length > 10) {
+          if (currentEdu && (currentEdu.degree || currentEdu.school)) {
+            currentEdu.description = eduBuffer.join('\n').trim();
             parsedData.education.push(currentEdu);
+            eduBuffer = [];
           }
-          const parts = line.split(/[-–—]/);
+          
+          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
+          
+          let eduInfo = line.replace(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/gi, '').trim();
+          eduInfo = eduInfo.replace(/[-–—•]/g, ' ').trim();
+          
+          const eduParts = eduInfo.split(/\s+at\s+|\s+@\s+|\s+-\s+|\s+,\s+/i);
+          
           currentEdu = {
-            degree: parts[0]?.trim() || "",
-            school: parts[1]?.trim() || "",
-            startDate: dateMatch[0].split(/[-–—]/)[0]?.trim() || "",
-            endDate: dateMatch[0].split(/[-–—]/)[1]?.trim() || "Present",
-            ongoing: dateMatch[0].includes("Present") || dateMatch[0].includes("Current"),
-            description: "",
+            degree: eduParts[0]?.trim() || '',
+            school: eduParts[1]?.trim() || eduParts[0]?.trim() || '',
+            startDate: dateMatch ? dateMatch[1] : '',
+            endDate: dateMatch ? dateMatch[2] : 'Present',
+            ongoing: dateMatch ? /present|current|now/i.test(dateMatch[2]) : false,
+            description: '',
           };
-        } else if (currentEdu && line.trim().length > 5) {
-          currentEdu.description += (currentEdu.description ? "\n" : "") + line.trim();
+        } else if (currentEdu && line.length > 5) {
+          eduBuffer.push(line);
         }
-      });
-      if (currentEdu) {
+      }
+      
+      if (currentEdu && (currentEdu.degree || currentEdu.school)) {
+        currentEdu.description = eduBuffer.join('\n').trim();
         parsedData.education.push(currentEdu);
       }
+      
+      console.log("Parsed education entries:", parsedData.education.length);
     }
 
-    // Extract skills (look for Skills section)
-    const skillsSection = text.match(/\b(Skills|Technical Skills|Core Skills)\b[\s\S]*?(?=\b(Experience|Education|Languages|$)\b)/i);
-    if (skillsSection) {
-      const skillsText = skillsSection[0];
-      // Extract comma or bullet-separated skills
-      const skillMatches = skillsText.match(/(?:[•\-\*]\s*)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g);
-      if (skillMatches) {
-        parsedData.skills = skillMatches
-          .map((s) => s.replace(/[•\-\*]\s*/, "").trim())
-          .filter((s) => s.length > 2 && !s.match(/^(Skills|Technical|Core)$/i));
+    // ========== EXTRACT SKILLS ==========
+    const skillsSection = normalizedText.match(
+      /(?:skills|technical skills|core skills|competencies|expertise)[:\s]*\n?([^]*?)(?=\n(?:experience|education|languages|hobbies|interests|$))/i
+    );
+    
+    if (skillsSection && skillsSection[1]) {
+      const skillsText = skillsSection[1];
+      console.log("Skills section found:", skillsText.substring(0, 200));
+      
+      // Extract skills - they can be comma-separated, bullet points, or newline-separated
+      const skillMatches = skillsText
+        .replace(/[•\-\*]/g, ',')
+        .split(/[,\n]/)
+        .map(s => s.trim())
+        .filter(s => {
+          // Must be a reasonable skill (not too short, not a section header)
+          return s.length >= 2 && 
+                 s.length <= 50 && 
+                 !/^(skills|technical|core|competencies)$/i.test(s) &&
+                 /[A-Za-z]/.test(s);
+        });
+      
+      if (skillMatches.length > 0) {
+        parsedData.skills = skillMatches.slice(0, 20); // Limit to 20 skills
+        console.log("Parsed skills:", parsedData.skills);
       }
+    }
+
+    // ========== EXTRACT LANGUAGES ==========
+    const languagesSection = normalizedText.match(
+      /(?:languages|language skills)[:\s]*\n?([^]*?)(?=\n(?:experience|education|skills|hobbies|interests|$))/i
+    );
+    
+    if (languagesSection && languagesSection[1]) {
+      const langText = languagesSection[1];
+      console.log("Languages section found:", langText.substring(0, 200));
+      
+      // Common language levels
+      const levelMap: any = {
+        'native': 1.0,
+        'fluent': 0.9,
+        'advanced': 0.8,
+        'proficient': 0.75,
+        'upper intermediate': 0.7,
+        'intermediate': 0.6,
+        'pre-intermediate': 0.5,
+        'elementary': 0.4,
+        'beginner': 0.3,
+        'basic': 0.3,
+        'a1': 0.2, 'a2': 0.35,
+        'b1': 0.5, 'b2': 0.7,
+        'c1': 0.85, 'c2': 1.0,
+      };
+      
+      // Common languages to look for
+      const commonLanguages = ['English', 'Albanian', 'Italian', 'German', 'French', 'Spanish', 'Portuguese', 'Russian', 'Chinese', 'Japanese', 'Arabic', 'Turkish', 'Greek', 'Dutch', 'Polish', 'Romanian', 'Serbian', 'Croatian', 'Macedonian', 'Bulgarian'];
+      
+      for (const lang of commonLanguages) {
+        const langRegex = new RegExp(`${lang}[:\\s]*[-–—]?\\s*(native|fluent|advanced|proficient|intermediate|elementary|beginner|basic|a1|a2|b1|b2|c1|c2)?`, 'i');
+        const match = langText.match(langRegex);
+        if (match) {
+          const level = match[1]?.toLowerCase() || 'intermediate';
+          parsedData.languages.push({
+            name: lang,
+            level: levelMap[level] || 0.5,
+          });
+        }
+      }
+      
+      console.log("Parsed languages:", parsedData.languages);
     }
 
     return parsedData;
@@ -538,79 +738,178 @@ const WizardForm = () => {
         let extractedText = "";
         try {
           // Convert base64 to binary string and try to extract text
-          // This is a basic approach - for production, use a proper PDF parsing library like pdf-parse
+          // This is a basic approach - for production, use a proper PDF parsing library
           const binaryString = atob(base64Content);
           
-          // Method 1: Extract text between parentheses (PDF text objects)
-          const textMatches = binaryString.match(/\((.*?)\)/g);
-          if (textMatches && textMatches.length > 0) {
-            extractedText = textMatches
-              .map(match => {
-                // Remove parentheses and decode escape sequences
-                let text = match.replace(/[()]/g, '');
-                // Handle PDF escape sequences
-                text = text.replace(/\\([nrtbf()\\])/g, (match, char) => {
-                  const escapes: any = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f' };
-                  return escapes[char] || char;
-                });
-                return text;
-              })
-              .filter(text => {
-                // Filter out very short strings, pure numbers, and non-readable content
-                const trimmed = text.trim();
-                return trimmed.length > 2 && 
-                       !trimmed.match(/^\d+$/) && 
-                       trimmed.match(/[A-Za-z]/); // Must contain at least one letter
-              })
-              .join(' ');
-          }
+          console.log("PDF binary size:", binaryString.length);
           
-          // Method 2: Extract text from stream objects (compressed text)
-          if (extractedText.length < 100) {
-            const streamMatches = binaryString.match(/stream[\s\S]{0,5000}?endstream/g);
-            if (streamMatches) {
-              streamMatches.forEach(stream => {
-                // Try to extract readable text from stream
-                // Look for text patterns
-                const textInStream = stream.match(/[A-Za-z][A-Za-z\s]{10,}/g);
-                if (textInStream) {
-                  extractedText += ' ' + textInStream.join(' ');
+          // Method 1: Extract text from BT/ET blocks (PDF text objects)
+          // PDF text is often in format: BT ... (text) Tj ... ET
+          const textBlocks: string[] = [];
+          const btEtRegex = /BT[\s\S]*?ET/g;
+          let btMatch;
+          while ((btMatch = btEtRegex.exec(binaryString)) !== null) {
+            const block = btMatch[0];
+            // Extract text from Tj and TJ operators
+            const tjMatches = block.match(/\((.*?)\)\s*Tj/g);
+            const tjArrayMatches = block.match(/\[(.*?)\]\s*TJ/g);
+            
+            if (tjMatches) {
+              tjMatches.forEach(m => {
+                const text = m.match(/\((.*?)\)/)?.[1] || '';
+                if (text && text.length > 0) {
+                  textBlocks.push(decodesPdfString(text));
+                }
+              });
+            }
+            
+            if (tjArrayMatches) {
+              tjArrayMatches.forEach(m => {
+                // TJ arrays contain text strings and positioning numbers
+                const arrayContent = m.match(/\[(.*?)\]/)?.[1] || '';
+                const texts = arrayContent.match(/\((.*?)\)/g);
+                if (texts) {
+                  const combinedText = texts.map(t => decodesPdfString(t.replace(/[()]/g, ''))).join('');
+                  if (combinedText) textBlocks.push(combinedText);
                 }
               });
             }
           }
           
-          // Method 3: Fallback - extract any readable ASCII text
-          if (extractedText.length < 50) {
-            // Look for sequences of readable characters
-            const readableText = binaryString.match(/[A-Za-z0-9\s@.\-+()]{15,}/g);
-            if (readableText) {
-              const filtered = readableText
+          // Helper function to decode PDF string escape sequences
+          function decodesPdfString(str: string): string {
+            return str
+              .replace(/\\n/g, '\n')
+              .replace(/\\r/g, '\r')
+              .replace(/\\t/g, '\t')
+              .replace(/\\\(/g, '(')
+              .replace(/\\\)/g, ')')
+              .replace(/\\\\/g, '\\')
+              .replace(/\\(\d{3})/g, (match, octal) => String.fromCharCode(parseInt(octal, 8)));
+          }
+          
+          if (textBlocks.length > 0) {
+            extractedText = textBlocks.join(' ');
+            console.log("Method 1 (BT/ET blocks) extracted:", textBlocks.length, "blocks");
+          }
+          
+          // Method 2: Extract text between parentheses (simpler PDF text objects)
+          if (extractedText.length < 100) {
+            const textMatches = binaryString.match(/\(([^()\\]|\\.){2,}\)/g);
+            if (textMatches && textMatches.length > 0) {
+              const extractedParts = textMatches
+                .map(match => {
+                  let text = match.replace(/[()]/g, '');
+                  text = decodesPdfString(text);
+                  return text;
+                })
                 .filter(text => {
                   const trimmed = text.trim();
-                  // Must have letters and be reasonably long
-                  return trimmed.length > 10 && trimmed.match(/[A-Za-z]{3,}/);
-                })
-                .join(' ')
-                .substring(0, 10000); // Limit to first 10000 chars
+                  // Must have letters and be readable
+                  return trimmed.length > 1 && 
+                         /[A-Za-z]/.test(trimmed) &&
+                         !/^[\d\s.]+$/.test(trimmed); // Not just numbers/spaces
+                });
               
-              if (filtered.length > extractedText.length) {
-                extractedText = filtered;
+              if (extractedParts.length > 0) {
+                const methodTwoText = extractedParts.join(' ');
+                if (methodTwoText.length > extractedText.length) {
+                  extractedText = methodTwoText;
+                  console.log("Method 2 (parentheses) extracted:", extractedParts.length, "parts");
+                }
               }
+            }
+          }
+          
+          // Method 3: Look for UTF-16BE encoded strings (common in PDFs)
+          if (extractedText.length < 100) {
+            // UTF-16BE strings start with FEFF BOM
+            const utf16Matches = binaryString.match(/\xFE\xFF[\x00-\xFF]{4,}/g);
+            if (utf16Matches) {
+              utf16Matches.forEach(match => {
+                try {
+                  // Skip BOM and decode UTF-16BE
+                  let decoded = '';
+                  for (let i = 2; i < match.length - 1; i += 2) {
+                    const charCode = (match.charCodeAt(i) << 8) + match.charCodeAt(i + 1);
+                    if (charCode >= 32 && charCode < 127) {
+                      decoded += String.fromCharCode(charCode);
+                    } else if (charCode === 0) {
+                      decoded += ' ';
+                    }
+                  }
+                  if (decoded.trim().length > 3) {
+                    extractedText += ' ' + decoded;
+                  }
+                } catch (e) {
+                  // Ignore decode errors
+                }
+              });
+              console.log("Method 3 (UTF-16BE) applied");
+            }
+          }
+          
+          // Method 4: Extract from stream objects (for compressed content)
+          if (extractedText.length < 100) {
+            // Look for uncompressed streams
+            const streamMatches = binaryString.match(/stream[\r\n]+([\s\S]{10,}?)[\r\n]+endstream/g);
+            if (streamMatches) {
+              streamMatches.forEach(stream => {
+                // Try to find readable text sequences
+                const readable = stream.match(/[A-Za-z][A-Za-z\s@.\-+(),]{10,}/g);
+                if (readable) {
+                  extractedText += ' ' + readable.join(' ');
+                }
+              });
+              console.log("Method 4 (streams) checked:", streamMatches.length, "streams");
+            }
+          }
+          
+          // Method 5: Fallback - extract any readable ASCII sequences
+          if (extractedText.length < 50) {
+            // Look for email pattern specifically
+            const emailInBinary = binaryString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+            if (emailInBinary) {
+              extractedText += ' ' + emailInBinary.join(' ');
+              console.log("Found emails in binary:", emailInBinary);
+            }
+            
+            // Look for phone patterns
+            const phoneInBinary = binaryString.match(/\+?\d[\d\s\-()]{7,}/g);
+            if (phoneInBinary) {
+              extractedText += ' ' + phoneInBinary.join(' ');
+              console.log("Found phones in binary:", phoneInBinary);
+            }
+            
+            // Look for long readable sequences
+            const readableText = binaryString.match(/[A-Za-z][A-Za-z\s]{15,}/g);
+            if (readableText) {
+              const filtered = readableText
+                .filter(text => text.trim().length > 10)
+                .join(' ');
+              extractedText += ' ' + filtered;
+              console.log("Method 5 (fallback readable) added");
             }
           }
           
           // Clean up extracted text
           extractedText = extractedText
             .replace(/\s+/g, ' ') // Normalize whitespace
-            .replace(/[^\x20-\x7E\n\r]/g, '') // Remove non-printable chars except newlines
+            .replace(/[^\x20-\x7E\n\r@.+\-]/g, ' ') // Keep printable ASCII + common chars
+            .replace(/\s+/g, ' ')
             .trim();
           
-          console.log("Extracted text length:", extractedText.length);
-          if (extractedText.length > 0) {
-            console.log("Extracted text preview:", extractedText.substring(0, 500));
-          } else {
-            console.warn("No text could be extracted from PDF. The PDF might be image-based or use a format we can't parse.");
+          console.log("=== FINAL EXTRACTED TEXT ===");
+          console.log("Length:", extractedText.length);
+          console.log("Preview (first 1000 chars):", extractedText.substring(0, 1000));
+          console.log("============================");
+          
+          if (extractedText.length === 0) {
+            console.warn("No text could be extracted from PDF. The PDF might be image-based or encrypted.");
+            Alert.alert(
+              "Limited PDF Support",
+              "This PDF appears to be image-based or uses a format we can't fully parse. Some information may not be extracted automatically. You can still fill in the form manually."
+            );
           }
         } catch (extractError: any) {
           console.error("Error extracting text from PDF:", extractError);
@@ -653,6 +952,19 @@ const WizardForm = () => {
           if (parsedData.skills.length > 0) {
             setSkills(parsedData.skills.filter((s: string) => s.trim() !== ""));
           }
+          if (parsedData.languages.length > 0) {
+            setLanguages(parsedData.languages);
+          }
+          
+          console.log("=== AUTO-FILL SUMMARY ===");
+          console.log("Contact:", parsedData.contact);
+          console.log("Address:", parsedData.address);
+          console.log("Summary:", parsedData.aboutMe.summary ? "Found" : "Not found");
+          console.log("Experience entries:", parsedData.experience.length);
+          console.log("Education entries:", parsedData.education.length);
+          console.log("Skills:", parsedData.skills.length);
+          console.log("Languages:", parsedData.languages.length);
+          console.log("=========================");
           
           console.log("Upload complete, navigating to template selection");
           setUploadProgress(false);
@@ -770,6 +1082,17 @@ const WizardForm = () => {
     }
   };
 
+  // Format last saved time
+  const formatLastSaved = () => {
+    if (!lastSaved) return null;
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - lastSaved.getTime()) / 1000);
+    if (diff < 5) return "Just now";
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <>
       {step === steps.length - 1 ? (
@@ -839,6 +1162,20 @@ const WizardForm = () => {
           keyboardShouldPersistTaps="handled"
         >
           <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
+            {/* Auto-save indicator */}
+            {lastSaved && step > 0 && (
+              <View style={autoSaveStyles.container}>
+                <MaterialCommunityIcons 
+                  name="cloud-check" 
+                  size={14} 
+                  color={isDark ? "#4CAF50" : "#43A047"} 
+                />
+                <Text style={[autoSaveStyles.text, { color: isDark ? "#AAA" : "#888" }]}>
+                  Saved {formatLastSaved()}
+                </Text>
+              </View>
+            )}
+            
             {errorMsg ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
@@ -997,6 +1334,119 @@ const WizardForm = () => {
           </View>
         </View>
       </Modal>
+
+      {/* PDF Generation Loading Modal */}
+      <Modal
+        visible={isGeneratingPdf && !showPdfPreview}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={uploadStyles.modalOverlay}>
+          <View style={[uploadStyles.modalContent, { backgroundColor: isDark ? "#2A2D35" : "#FFF" }]}>
+            <ActivityIndicator size="large" color={isDark ? "#4F8EF7" : "#1976D2"} />
+            <Text style={[uploadStyles.progressText, { color: isDark ? "#FFF" : "#222" }]}>
+              Generating your CV...
+            </Text>
+            <Text style={[uploadStyles.progressSubtext, { color: isDark ? "#AAA" : "#666" }]}>
+              This may take a moment
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* PDF Preview Modal */}
+      <Modal
+        visible={showPdfPreview}
+        animationType="slide"
+        onRequestClose={() => setShowPdfPreview(false)}
+      >
+        <View style={[previewStyles.container, { backgroundColor: isDark ? "#181A20" : "#f2f4f8" }]}>
+          <View style={[previewStyles.header, { backgroundColor: isDark ? "#23262F" : "#FFF" }]}>
+            <TouchableOpacity
+              style={previewStyles.closeButton}
+              onPress={() => setShowPdfPreview(false)}
+            >
+              <MaterialCommunityIcons name="close" size={24} color={isDark ? "#FFF" : "#222"} />
+            </TouchableOpacity>
+            <Text style={[previewStyles.headerTitle, { color: isDark ? "#FFF" : "#222" }]}>
+              Preview Your CV
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+          
+          <View style={previewStyles.webviewContainer}>
+            <WebView
+              source={{ html: pdfPreviewHtml }}
+              style={previewStyles.webview}
+              scalesPageToFit={true}
+              showsVerticalScrollIndicator={true}
+            />
+          </View>
+          
+          <View style={[previewStyles.footer, { backgroundColor: isDark ? "#23262F" : "#FFF" }]}>
+            <TouchableOpacity
+              style={[previewStyles.footerButton, previewStyles.cancelButton, { borderColor: isDark ? "#4F8EF7" : "#1976D2" }]}
+              onPress={() => setShowPdfPreview(false)}
+            >
+              <Text style={[previewStyles.cancelButtonText, { color: isDark ? "#4F8EF7" : "#1976D2" }]}>
+                Edit CV
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[previewStyles.footerButton, previewStyles.downloadButton, { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" }]}
+              onPress={handleConfirmDownload}
+            >
+              <MaterialCommunityIcons name="download" size={20} color="#FFF" />
+              <Text style={previewStyles.downloadButtonText}>Download PDF</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Draft Restore Prompt Modal */}
+      <Modal
+        visible={showDraftPrompt}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={uploadStyles.modalOverlay}>
+          <View style={[draftStyles.modalContent, { backgroundColor: isDark ? "#2A2D35" : "#FFF" }]}>
+            <MaterialCommunityIcons 
+              name="file-restore" 
+              size={48} 
+              color={isDark ? "#4F8EF7" : "#1976D2"} 
+            />
+            <Text style={[draftStyles.title, { color: isDark ? "#FFF" : "#222" }]}>
+              Resume Draft Found
+            </Text>
+            <Text style={[draftStyles.subtitle, { color: isDark ? "#AAA" : "#666" }]}>
+              Would you like to continue where you left off?
+            </Text>
+            <View style={draftStyles.buttonRow}>
+              <TouchableOpacity
+                style={[draftStyles.button, draftStyles.discardButton, { borderColor: isDark ? "#E53935" : "#D32F2F" }]}
+                onPress={async () => {
+                  await clearDraft();
+                  setShowDraftPrompt(false);
+                }}
+              >
+                <Text style={[draftStyles.discardText, { color: isDark ? "#E53935" : "#D32F2F" }]}>
+                  Start Fresh
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[draftStyles.button, draftStyles.restoreButton, { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" }]}
+                onPress={async () => {
+                  setShowDraftPrompt(false);
+                  await loadDraft();
+                }}
+              >
+                <Text style={draftStyles.restoreText}>Restore Draft</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -1065,6 +1515,161 @@ const uploadStyles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: "center",
+  },
+});
+
+const previewStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: Platform.OS === "ios" ? 50 : 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  webviewContainer: {
+    flex: 1,
+    margin: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  webview: {
+    flex: 1,
+  },
+  footer: {
+    flexDirection: "row",
+    padding: 16,
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  footerButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  cancelButton: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  downloadButton: {
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  downloadButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
+
+const draftStyles = StyleSheet.create({
+  modalContent: {
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    minWidth: 300,
+    maxWidth: "85%",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    marginTop: 24,
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  discardButton: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+  },
+  discardText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  restoreButton: {
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  restoreText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
+
+const autoSaveStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    gap: 6,
+  },
+  text: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });
 

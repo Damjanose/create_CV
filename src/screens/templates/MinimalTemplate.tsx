@@ -115,27 +115,45 @@ const MinimalTemplate: React.FC<Props> = ({
           <View style={styles.content}>
             <Text style={styles.headerTitle}>Experience</Text>
             <View style={styles.divider} />
-            {experience.map((exp, i) => (
-              <View key={i} style={styles.block}>
-                <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
-                <Text style={styles.meta}>
-                  {exp.company} ({exp.startDate} – {exp.ongoing ? "Present" : exp.endDate})
-                </Text>
-                <Text style={styles.bullet}>• {exp.description}</Text>
-              </View>
-            ))}
+            {experience.map((exp, i) => {
+              const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+              return (
+                <View key={i} style={styles.block}>
+                  <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
+                  <Text style={styles.meta}>
+                    {exp.company} ({exp.startDate} – {exp.ongoing ? "Present" : exp.endDate})
+                  </Text>
+                  {bullets.length > 0 ? (
+                    bullets.map((b, j) => (
+                      <Text key={j} style={styles.bullet}>• {b}</Text>
+                    ))
+                  ) : (
+                    exp.description ? <Text style={styles.bullet}>• {exp.description}</Text> : null
+                  )}
+                </View>
+              );
+            })}
 
             <Text style={styles.headerTitle}>Education</Text>
             <View style={styles.divider} />
-            {education.map((edu, i) => (
-              <View key={i} style={styles.block}>
-                <Text style={styles.blockTitle}>{edu.degree}</Text>
-                <Text style={styles.meta}>
-                  {edu.school} ({edu.startDate} – {edu.ongoing ? "Present" : edu.endDate})
-                </Text>
-                <Text style={styles.bullet}>• {edu.description}</Text>
-              </View>
-            ))}
+            {education.map((edu, i) => {
+              const bullets = edu.description ? edu.description.split("\n").filter(Boolean) : [];
+              return (
+                <View key={i} style={styles.block}>
+                  <Text style={styles.blockTitle}>{edu.degree}</Text>
+                  <Text style={styles.meta}>
+                    {edu.school} ({edu.startDate} – {edu.ongoing ? "Present" : edu.endDate})
+                  </Text>
+                  {bullets.length > 0 ? (
+                    bullets.map((b, j) => (
+                      <Text key={j} style={styles.bullet}>• {b}</Text>
+                    ))
+                  ) : (
+                    edu.description ? <Text style={styles.bullet}>• {edu.description}</Text> : null
+                  )}
+                </View>
+              );
+            })}
           </View>
         </View>
       </View>

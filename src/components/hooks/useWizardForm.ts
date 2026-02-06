@@ -51,7 +51,7 @@ export interface Template {
   description: string;
 }
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Alert,
   Animated,
@@ -63,6 +63,10 @@ import {
 // @ts-ignore: No types for react-native-html-to-pdf
 import RNHTMLtoPDF from "react-native-html-to-pdf";
 import RNFS from "react-native-fs";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CV_DRAFT_KEY = "CV_DRAFT_DATA";
+const AUTO_SAVE_DEBOUNCE = 1000; // 1 second debounce
 
 const stepLabels = [
   "Welcome",
@@ -314,6 +318,17 @@ type UseWizardFormReturn = {
   handleBack: () => void;
   renderTemplateHtml: (imageBase64?: string) => string;
   handleDownloadPDF: () => Promise<void>;
+  // New features
+  isGeneratingPdf: boolean;
+  showPdfPreview: boolean;
+  setShowPdfPreview: React.Dispatch<React.SetStateAction<boolean>>;
+  pdfPreviewHtml: string;
+  handlePreviewPdf: () => Promise<void>;
+  handleConfirmDownload: () => Promise<void>;
+  clearDraft: () => Promise<void>;
+  hasDraft: boolean;
+  loadDraft: () => Promise<void>;
+  lastSaved: Date | null;
 };
 
 const useWizardForm = (): UseWizardFormReturn => {
@@ -360,6 +375,122 @@ const useWizardForm = (): UseWizardFormReturn => {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  
+  // New state for loading, PDF preview, and auto-save
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
+  const [showPdfPreview, setShowPdfPreview] = useState<boolean>(false);
+  const [pdfPreviewHtml, setPdfPreviewHtml] = useState<string>("");
+  const [hasDraft, setHasDraft] = useState<boolean>(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  // ============ AUTO-SAVE FUNCTIONALITY ============
+  
+  // Check for existing draft on mount
+  useEffect(() => {
+    const checkForDraft = async () => {
+      try {
+        const draftData = await AsyncStorage.getItem(CV_DRAFT_KEY);
+        if (draftData) {
+          setHasDraft(true);
+        }
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Error checking for draft:", error);
+        setIsInitialized(true);
+      }
+    };
+    checkForDraft();
+  }, []);
+
+  // Auto-save when form data changes (debounced)
+  useEffect(() => {
+    if (!isInitialized) return; // Don't save during initial load
+    
+    const saveTimeout = setTimeout(async () => {
+      try {
+        const draftData = {
+          contact,
+          address,
+          aboutMe: { summary: aboutMe.summary, image: aboutMe.image },
+          languages,
+          experience,
+          education,
+          skills: skills.filter(s => s.trim() !== ""),
+          hobbies: hobbies.filter(h => h.trim() !== ""),
+          selectedTemplate,
+          step,
+          savedAt: new Date().toISOString(),
+        };
+        
+        // Only save if there's meaningful data
+        if (contact.name || contact.email || experience.length > 0 || education.length > 0) {
+          await AsyncStorage.setItem(CV_DRAFT_KEY, JSON.stringify(draftData));
+          setLastSaved(new Date());
+          setHasDraft(true);
+          console.log("Draft auto-saved");
+        }
+      } catch (error) {
+        console.error("Error auto-saving draft:", error);
+      }
+    }, AUTO_SAVE_DEBOUNCE);
+
+    return () => clearTimeout(saveTimeout);
+  }, [contact, address, aboutMe.summary, languages, experience, education, skills, hobbies, selectedTemplate, step, isInitialized]);
+
+  // Load draft function
+  const loadDraft = async (): Promise<void> => {
+    try {
+      const draftData = await AsyncStorage.getItem(CV_DRAFT_KEY);
+      if (draftData) {
+        const parsed = JSON.parse(draftData);
+        
+        if (parsed.contact) setContact(parsed.contact);
+        if (parsed.address) setAddress(parsed.address);
+        if (parsed.aboutMe) setAboutMe(prev => ({ ...prev, ...parsed.aboutMe }));
+        if (parsed.languages) setLanguages(parsed.languages);
+        if (parsed.experience) setExperience(parsed.experience);
+        if (parsed.education) setEducation(parsed.education);
+        if (parsed.skills && parsed.skills.length > 0) setSkills([...parsed.skills, ""]);
+        if (parsed.hobbies && parsed.hobbies.length > 0) setHobbies([...parsed.hobbies, ""]);
+        if (parsed.selectedTemplate) setSelectedTemplate(parsed.selectedTemplate);
+        
+        // Navigate to the saved step or template selection if data exists
+        const targetStep = parsed.selectedTemplate ? Math.min(parsed.step || 1, 6) : 1;
+        setStep(targetStep);
+        
+        Alert.alert("Draft Restored", "Your previous progress has been restored.");
+      }
+    } catch (error) {
+      console.error("Error loading draft:", error);
+      Alert.alert("Error", "Could not restore your draft.");
+    }
+  };
+
+  // Clear draft function
+  const clearDraft = async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem(CV_DRAFT_KEY);
+      setHasDraft(false);
+      setLastSaved(null);
+    } catch (error) {
+      console.error("Error clearing draft:", error);
+    }
+  };
+
+  // ============ END AUTO-SAVE ============
+
+  // Validation helpers
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    // Allow various phone formats: +1234567890, 123-456-7890, (123) 456-7890, etc.
+    const phoneRegex = /^[\d\s\-\+\(\)]{7,20}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ""));
+  };
 
   const validateStep = (): boolean => {
     setErrorMsg("");
@@ -377,24 +508,70 @@ const useWizardForm = (): UseWizardFormReturn => {
       return true;
     }
     if (step === 2) {
-      // About Me step
-      if (!aboutMe.summary || aboutMe.summary.trim() === "") valid = false;
-      if (
-        !contact.name ||
-        !contact.lastname ||
-        !contact.phone ||
-        !contact.email
-      )
+      // About Me step - validate all fields
+      const missingFields: string[] = [];
+      
+      if (!aboutMe.summary || aboutMe.summary.trim() === "") {
+        missingFields.push("Summary");
         valid = false;
-      if (!address.countryName || !address.cityName || !address.address1)
+      }
+      if (!contact.name || contact.name.trim() === "") {
+        missingFields.push("First Name");
         valid = false;
-      if (!valid) setErrorMsg("Please fill all required fields.");
+      }
+      if (!contact.lastname || contact.lastname.trim() === "") {
+        missingFields.push("Last Name");
+        valid = false;
+      }
+      if (!contact.phone || contact.phone.trim() === "") {
+        missingFields.push("Phone");
+        valid = false;
+      } else if (!validatePhone(contact.phone)) {
+        setErrorMsg("Please enter a valid phone number.");
+        return false;
+      }
+      if (!contact.email || contact.email.trim() === "") {
+        missingFields.push("Email");
+        valid = false;
+      } else if (!validateEmail(contact.email)) {
+        setErrorMsg("Please enter a valid email address.");
+        return false;
+      }
+      if (!address.countryName) {
+        missingFields.push("Country");
+        valid = false;
+      }
+      if (!address.cityName) {
+        missingFields.push("City");
+        valid = false;
+      }
+      if (!address.address1 || address.address1.trim() === "") {
+        missingFields.push("Address");
+        valid = false;
+      }
+      
+      if (!valid) {
+        if (missingFields.length > 0) {
+          setErrorMsg(`Please fill: ${missingFields.join(", ")}`);
+        }
+      }
       return valid;
     }
     if (step === 3) {
       // Languages & Skills step
-      if (languages.length === 0 || skills.length === 0) {
+      const hasLanguages = languages.length > 0 && languages.some(l => l.name && l.name.trim() !== "");
+      const hasSkills = skills.length > 0 && skills.some(s => s && s.trim() !== "");
+      
+      if (!hasLanguages && !hasSkills) {
         setErrorMsg("Please add at least one language and one skill.");
+        return false;
+      }
+      if (!hasLanguages) {
+        setErrorMsg("Please add at least one language.");
+        return false;
+      }
+      if (!hasSkills) {
+        setErrorMsg("Please add at least one skill.");
         return false;
       }
     }
@@ -411,21 +588,31 @@ const useWizardForm = (): UseWizardFormReturn => {
       return !!selectedTemplate;
     }
     if (step === 2) {
-      // About Me step
-      return !!(
+      // About Me step - check all required fields including valid email/phone
+      const hasRequiredFields = !!(
         aboutMe.summary.trim() !== "" &&
         contact.name &&
+        contact.name.trim() !== "" &&
         contact.lastname &&
+        contact.lastname.trim() !== "" &&
         contact.phone &&
+        contact.phone.trim() !== "" &&
         contact.email &&
+        contact.email.trim() !== "" &&
         address.countryName &&
         address.cityName &&
-        address.address1
+        address.address1 &&
+        address.address1.trim() !== ""
       );
+      if (!hasRequiredFields) return false;
+      // Also check email and phone format
+      return validateEmail(contact.email) && validatePhone(contact.phone);
     }
     if (step === 3) {
-      // Languages & Skills step
-      return languages.length > 0 && skills.length > 0;
+      // Languages & Skills step - ensure at least one valid entry each
+      const hasLanguages = languages.length > 0 && languages.some(l => l.name && l.name.trim() !== "");
+      const hasSkills = skills.length > 0 && skills.some(s => s && s.trim() !== "");
+      return hasLanguages && hasSkills;
     }
     return true;
   };
@@ -530,6 +717,10 @@ const useWizardForm = (): UseWizardFormReturn => {
     } else if (selectedTemplate === "modern") {
       // ModernTemplate: Header with name/lastname, contact row, sections - matching preview exactly
       const locationStr = `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`.trim();
+      // SVG icons for PDF (matching MaterialCommunityIcons from preview)
+      const emailIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+      const locationIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+      const phoneIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
       html = `
         <div style="width:210mm;min-height:297mm;margin:auto;font-family:serif;background:#fff;padding:12px;">
           <!-- Header -->
@@ -543,11 +734,11 @@ const useWizardForm = (): UseWizardFormReturn => {
             ${imageBase64 ? `<img src='data:image/jpeg;base64,${imageBase64}' style='width:40px;height:40px;border-radius:20px;object-fit:cover;background:#eee;margin-left:8px;'/>` : ""}
           </div>
           
-          <!-- Contact Row -->
-          <div style="display:flex;flex-direction:row;justify-content:center;margin:6px 0;">
-            <div style="font-size:5pt;color:#333;margin:0 6px;">${contact.email}</div>
-            <div style="font-size:5pt;color:#333;margin:0 6px;">${locationStr}</div>
-            <div style="font-size:5pt;color:#333;margin:0 6px;">${contact.phone}</div>
+          <!-- Contact Row with Icons -->
+          <div style="display:flex;flex-direction:row;justify-content:center;align-items:center;margin:6px 0;">
+            <div style="display:flex;align-items:center;font-size:5pt;color:#333;margin:0 6px;">${emailIcon}${contact.email}</div>
+            <div style="display:flex;align-items:center;font-size:5pt;color:#333;margin:0 6px;">${locationIcon}${locationStr}</div>
+            <div style="display:flex;align-items:center;font-size:5pt;color:#333;margin:0 6px;">${phoneIcon}${contact.phone}</div>
           </div>
           
           <!-- Divider -->
@@ -556,13 +747,12 @@ const useWizardForm = (): UseWizardFormReturn => {
           <!-- Languages -->
           ${languages.length > 0 ? `
             <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Languages</div>
-            <div style="display:flex;flex-direction:row;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;flex-direction:row;justify-content:flex-start;gap:10px;margin-bottom:8px;">
               ${languages.map((lang) => `
-                <div style="flex:1;margin:0 3px;">
-                  <div style="font-size:5pt;margin-bottom:2px;color:#333;">${lang.label}</div>
-                  <div style="display:flex;flex-direction:row;height:3px;background:#EEE;border-radius:2px;">
+                <div style="flex:1;max-width:80px;">
+                  <div style="font-size:5pt;margin-bottom:2px;color:#333;">${lang.name}</div>
+                  <div style="display:flex;flex-direction:row;height:3px;background:#EEE;border-radius:2px;overflow:hidden;">
                     <div style="width:${lang.level * 100}%;background:#333;border-radius:2px;"></div>
-                    <div style="flex:1;"></div>
                   </div>
                 </div>
               `).join("")}
@@ -574,11 +764,10 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Education</div>
             ${education.map((edu) => {
               const period = `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`;
-              const location = ""; // Location is empty in preview
               return `
               <div style="margin-bottom:6px;">
                 <div style="font-size:6.5pt;font-weight:600;color:#111;">${edu.degree}</div>
-                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${edu.school}${location ? `, ${location}` : ""} (${period})</div>
+                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${edu.school} (${period})</div>
               </div>
             `;
             }).join("")}
@@ -644,23 +833,37 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="flex:1;padding:8px;">
               <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Experience</div>
               <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
-              ${experience.map((exp) => `
+              ${experience.map((exp) => {
+                const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+                const hasBullets = bullets.length > 0;
+                return `
                 <div style="margin-bottom:8px;">
                   <div style="font-size:7pt;font-weight:600;color:#000;">${exp.jobTitle}</div>
                   <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${exp.company} (${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate})</div>
-                  <div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${exp.description}</div>
+                  ${hasBullets 
+                    ? bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")
+                    : (exp.description ? `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${exp.description}</div>` : "")
+                  }
                 </div>
-              `).join("")}
+              `;
+              }).join("")}
               
               <div style="font-size:9pt;font-weight:700;margin-bottom:4px;color:#000;">Education</div>
               <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
-              ${education.map((edu) => `
+              ${education.map((edu) => {
+                const bullets = edu.description ? edu.description.split("\n").filter(Boolean) : [];
+                const hasBullets = bullets.length > 0;
+                return `
                 <div style="margin-bottom:8px;">
                   <div style="font-size:7pt;font-weight:600;color:#000;">${edu.degree}</div>
                   <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${edu.school} (${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate})</div>
-                  <div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${edu.description}</div>
+                  ${hasBullets 
+                    ? bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")
+                    : (edu.description ? `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${edu.description}</div>` : "")
+                  }
                 </div>
-              `).join("")}
+              `;
+              }).join("")}
             </div>
           </div>
         </div>
@@ -669,37 +872,86 @@ const useWizardForm = (): UseWizardFormReturn => {
     return `<html><head><meta charset="UTF-8"><style>@page { size: A4; margin: 0; }</style></head><body style='margin:0;padding:0;font-family:sans-serif;'>${html}</body></html>`;
   };
 
-  const handleDownloadPDF = async (): Promise<void> => {
-    let imageBase64 = aboutMe.imageBase64;
-    if (!imageBase64 && aboutMe.image) {
-      try {
-        imageBase64 = await RNFS.readFile(aboutMe.image, "base64");
-      } catch (e) {}
-    }
+  // ============ PDF PREVIEW & DOWNLOAD ============
+
+  // Generate PDF preview HTML for modal
+  const handlePreviewPdf = async (): Promise<void> => {
+    setIsGeneratingPdf(true);
     try {
+      let imageBase64 = aboutMe.imageBase64;
+      if (!imageBase64 && aboutMe.image) {
+        try {
+          imageBase64 = await RNFS.readFile(aboutMe.image, "base64");
+        } catch (e) {
+          console.log("Could not read image for preview");
+        }
+      }
       const html = renderTemplateHtml(imageBase64);
-      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(
-        /\s+/g,
-        "_",
-      );
+      setPdfPreviewHtml(html);
+      setShowPdfPreview(true);
+    } catch (e) {
+      console.error("Error generating preview:", e);
+      Alert.alert("Error", "Failed to generate preview.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  // Confirm and download PDF after preview
+  const handleConfirmDownload = async (): Promise<void> => {
+    setShowPdfPreview(false);
+    setIsGeneratingPdf(true);
+    
+    try {
+      let imageBase64 = aboutMe.imageBase64;
+      if (!imageBase64 && aboutMe.image) {
+        try {
+          imageBase64 = await RNFS.readFile(aboutMe.image, "base64");
+        } catch (e) {}
+      }
+      
+      const html = renderTemplateHtml(imageBase64);
+      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(/\s+/g, "_");
+      
       const file = await RNHTMLtoPDF.convert({
         html,
         fileName: safeName,
         directory: "Documents",
         base64: false,
       });
+      
       let destPath = file.filePath;
       if (!destPath) throw new Error("PDF file path not found");
+      
       if (Platform.OS === "android") {
         const downloadDir = `${RNFS.DownloadDirectoryPath}/${safeName}.pdf`;
         await RNFS.moveFile(destPath, downloadDir);
         destPath = downloadDir;
       }
-      Alert.alert("Success", `CV PDF saved to: ${destPath}`);
+      
+      // Clear draft after successful download
+      await clearDraft();
+      
+      Alert.alert(
+        "Success! 🎉", 
+        `Your CV has been saved to:\n${destPath}`,
+        [{ text: "OK", style: "default" }]
+      );
     } catch (e) {
-      Alert.alert("Error", "Failed to generate or save PDF.");
+      console.error("Error generating PDF:", e);
+      Alert.alert("Error", "Failed to generate or save PDF. Please try again.");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
+
+  // Legacy download function (direct download without preview)
+  const handleDownloadPDF = async (): Promise<void> => {
+    // Show preview first instead of direct download
+    await handlePreviewPdf();
+  };
+
+  // ============ END PDF PREVIEW & DOWNLOAD ============
 
   return {
     step,
@@ -740,6 +992,17 @@ const useWizardForm = (): UseWizardFormReturn => {
     handleBack,
     renderTemplateHtml,
     handleDownloadPDF,
+    // New features
+    isGeneratingPdf,
+    showPdfPreview,
+    setShowPdfPreview,
+    pdfPreviewHtml,
+    handlePreviewPdf,
+    handleConfirmDownload,
+    clearDraft,
+    hasDraft,
+    loadDraft,
+    lastSaved,
   };
 };
 
