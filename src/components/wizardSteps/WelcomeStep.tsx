@@ -126,11 +126,9 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
                 backgroundColor: isDark ? "#23262F" : "#FFFFFF",
                 borderWidth: 2,
                 borderColor: isDark ? "#4F8EF7" : "#1976D2",
-                opacity: 0.5,
               },
             ]}
             onPress={onUploadResume}
-            disabled={true}
           >
             <Text
               style={[

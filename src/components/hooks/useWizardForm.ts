@@ -498,10 +498,12 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
             ${experience.map((exp) => {
               const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+              const endDate = exp.ongoing ? "Present" : exp.endDate;
+              const location = ""; // Location is empty in preview
               return `
               <div style="margin-bottom:8px;">
                 <div style="font-size:7pt;font-weight:600;color:#000;">${exp.jobTitle}</div>
-                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${exp.company} (${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate})</div>
+                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${exp.company}${location ? `, ${location}` : ""} (${exp.startDate} – ${endDate})</div>
                 ${bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")}
               </div>
             `;
@@ -511,10 +513,13 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="height:1px;background:#ddd;margin-bottom:5px;"></div>
             ${education.map((edu) => {
               const bullets = edu.description ? edu.description.split("\n").filter(Boolean) : [];
+              const endDate = edu.ongoing ? "Present" : edu.endDate;
+              const year = `${edu.startDate} – ${endDate}`;
+              const location = ""; // Location is empty in preview
               return `
               <div style="margin-bottom:8px;">
                 <div style="font-size:7pt;font-weight:600;color:#000;">${edu.degree}</div>
-                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${edu.school} (${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate})</div>
+                <div style="font-size:5.5pt;color:#555;margin-bottom:2px;">${edu.school}${location ? `, ${location}` : ""} (${year})</div>
                 ${bullets.map((b) => `<div style="font-size:6pt;color:#333;margin-left:5px;margin-bottom:2px;">• ${b}</div>`).join("")}
               </div>
             `;
@@ -569,10 +574,11 @@ const useWizardForm = (): UseWizardFormReturn => {
             <div style="font-size:7pt;font-weight:700;background:#ddd;padding:2px 4px;margin-top:10px;margin-bottom:5px;display:inline-block;">Education</div>
             ${education.map((edu) => {
               const period = `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`;
+              const location = ""; // Location is empty in preview
               return `
               <div style="margin-bottom:6px;">
                 <div style="font-size:6.5pt;font-weight:600;color:#111;">${edu.degree}</div>
-                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${edu.school} (${period})</div>
+                <div style="font-size:5.5pt;color:#666;margin-bottom:2px;">${edu.school}${location ? `, ${location}` : ""} (${period})</div>
               </div>
             `;
             }).join("")}
