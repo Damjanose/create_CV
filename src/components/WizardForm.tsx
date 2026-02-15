@@ -112,6 +112,7 @@ const WizardForm = () => {
     errorMsg,
     fieldErrors,
     validateField,
+    clearFieldError,
     selectedTemplate,
     setSelectedTemplate,
     canGoNext,
@@ -1227,6 +1228,7 @@ const WizardForm = () => {
             launchCamera={handleLaunchCamera}
             fieldErrors={fieldErrors}
             validateField={validateField}
+            clearFieldError={clearFieldError}
           />
         );
       case 3:

@@ -316,6 +316,7 @@ type UseWizardFormReturn = {
   errorMsg: string;
   setErrorMsg: React.Dispatch<React.SetStateAction<string>>;
   fieldErrors: Record<string, string>;
+  clearFieldError: (field: string) => void;
   validateField: (field: string) => void;
   selectedTemplate: string;
   setSelectedTemplate: React.Dispatch<React.SetStateAction<string>>;
@@ -503,6 +504,16 @@ const useWizardForm = (): UseWizardFormReturn => {
     // Allow various phone formats: +1234567890, 123-456-7890, (123) 456-7890, etc.
     const phoneRegex = /^[\d\s\-\+\(\)]{7,20}$/;
     return phoneRegex.test(phone.replace(/\s/g, ""));
+  };
+
+  // Clear a single field error (called on change)
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   // Validate a single field on blur
@@ -1086,6 +1097,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     setErrorMsg,
     fieldErrors,
     validateField,
+    clearFieldError,
     selectedTemplate: resolvedTemplate,
     setSelectedTemplate,
     showPreview,
