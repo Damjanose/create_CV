@@ -724,9 +724,9 @@ const WizardForm = () => {
       const nameParts = emailPrefix
         .replace(/[._-]+/g, " ")
         .split(" ")
-        .map(part => part.trim())
+        .map((part: string) => part.trim())
         .filter(Boolean)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1));
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1));
 
       if (!parsedData.contact.name && nameParts[0]) {
         parsedData.contact.name = nameParts[0];
@@ -757,10 +757,10 @@ const WizardForm = () => {
       if (Platform.OS === "android") {
         const version =
           typeof Platform.Version === "string"
-            ? parseInt(Platform.Version, 10)
-            : Platform.Version;
+            ? parseInt(Platform.Version as string, 10)
+            : Platform.Version as number;
         let permission;
-        if (version >= 33) {
+        if ((version as number) >= 33) {
           permission = await check(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
           if (permission !== RESULTS.GRANTED) {
             permission = await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES);
@@ -790,18 +790,12 @@ const WizardForm = () => {
 
       // DocumentPicker returns an array or single object depending on version
       let file: any;
-      if (Array.isArray(result)) {
-        if (result.length === 0) {
-          Alert.alert("Error", "No file selected.");
-          return;
-        }
-        file = result[0];
-      } else if (result) {
-        file = result;
-      } else {
+      const resultArr: any[] = (Array.isArray(result) ? result : [result]) as any[];
+      if (resultArr.length === 0) {
         Alert.alert("Error", "No file selected.");
         return;
       }
+      file = resultArr[0];
       
       console.log("Selected file:", JSON.stringify(file, null, 2));
 
@@ -925,7 +919,7 @@ const WizardForm = () => {
             const tjArrayMatches = block.match(/\[(.*?)\]\s*TJ/g);
             
             if (tjMatches) {
-              tjMatches.forEach(m => {
+              tjMatches.forEach((m: string) => {
                 const text = m.match(/\((.*?)\)/)?.[1] || '';
                 if (text && text.length > 0) {
                   const decoded = decodesPdfString(text);
@@ -937,12 +931,12 @@ const WizardForm = () => {
             }
             
             if (tjArrayMatches) {
-              tjArrayMatches.forEach(m => {
+              tjArrayMatches.forEach((m: string) => {
                 // TJ arrays contain text strings and positioning numbers
                 const arrayContent = m.match(/\[(.*?)\]/)?.[1] || '';
                 const texts = arrayContent.match(/\((.*?)\)/g);
                 if (texts) {
-                  const combinedText = texts.map(t => decodesPdfString(t.replace(/[()]/g, ''))).join('');
+                  const combinedText = texts.map((t: string) => decodesPdfString(t.replace(/[()]/g, ''))).join('');
                   if (isLikelyHumanText(combinedText, 2)) textBlocks.push(combinedText);
                 }
               });
@@ -969,8 +963,8 @@ const WizardForm = () => {
           // Method 2: Extract text between parentheses (simpler PDF text objects)
           if (extractedText.length < 100) {
             const textMatches = binaryString.match(/\(([^()\\]|\\.){2,}\)/g);
-            if (textMatches && textMatches.length > 0) {
-              const extractedParts = textMatches
+            if (textMatches && textMatches!.length > 0) {
+              const extractedParts = textMatches!
                 .map(match => {
                   let text = match.replace(/[()]/g, '');
                   text = decodesPdfString(text);
@@ -997,7 +991,7 @@ const WizardForm = () => {
             // UTF-16BE strings start with FEFF BOM
             const utf16Matches = binaryString.match(/\xFE\xFF[\x00-\xFF]{4,}/g);
             if (utf16Matches) {
-              utf16Matches.forEach(match => {
+              utf16Matches!.forEach(match => {
                 try {
                   // Skip BOM and decode UTF-16BE
                   let decoded = '';
@@ -1025,7 +1019,7 @@ const WizardForm = () => {
             // Look for uncompressed streams
             const streamMatches = binaryString.match(/stream[\r\n]+([\s\S]{10,}?)[\r\n]+endstream/g);
             if (streamMatches) {
-              streamMatches.forEach(stream => {
+              streamMatches!.forEach(stream => {
                 // Try to find readable text sequences
                 const readable = stream.match(/[A-Za-z][A-Za-z\s@.\-+(),]{10,}/g);
                 if (readable) {
@@ -1035,7 +1029,7 @@ const WizardForm = () => {
                   }
                 }
               });
-              console.log("Method 4 (streams) checked:", streamMatches.length, "streams");
+              console.log("Method 4 (streams) checked:", streamMatches!.length, "streams");
             }
           }
           
@@ -1044,21 +1038,21 @@ const WizardForm = () => {
             // Look for email pattern specifically
             const emailInBinary = binaryString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
             if (emailInBinary) {
-              extractedText += ' ' + emailInBinary.join(' ');
+              extractedText += ' ' + emailInBinary!.join(' ');
               console.log("Found emails in binary:", emailInBinary);
             }
             
             // Look for phone patterns
             const phoneInBinary = binaryString.match(/\+?\d[\d\s\-()]{7,}/g);
             if (phoneInBinary) {
-              extractedText += ' ' + phoneInBinary.join(' ');
+              extractedText += ' ' + phoneInBinary!.join(' ');
               console.log("Found phones in binary:", phoneInBinary);
             }
             
             // Look for long readable sequences
             const readableText = binaryString.match(/[A-Za-z][A-Za-z\s]{15,}/g);
             if (readableText) {
-              const filtered = readableText
+              const filtered = readableText!
                 .filter(text => isLikelyHumanText(text, 10))
                 .join(' ');
               if (filtered) {
@@ -1286,17 +1280,6 @@ const WizardForm = () => {
     }
   };
 
-  // Format last saved time
-  const formatLastSaved = () => {
-    if (!lastSaved) return null;
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - lastSaved.getTime()) / 1000);
-    if (diff < 5) return "Just now";
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   return (
     <>
       {step === steps.length - 1 ? (
@@ -1365,21 +1348,7 @@ const WizardForm = () => {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-            {/* Auto-save indicator */}
-            {lastSaved && step > 0 && (
-              <View style={autoSaveStyles.container}>
-                <MaterialCommunityIcons 
-                  name="cloud-check" 
-                  size={14} 
-                  color={isDark ? "#4CAF50" : "#43A047"} 
-                />
-                <Text style={[autoSaveStyles.text, { color: isDark ? "#AAA" : "#888" }]}>
-                  Saved {formatLastSaved()}
-                </Text>
-              </View>
-            )}
-            
+          <Animated.View style={[styles.card, { opacity: fadeAnim }]}>            
             {errorMsg ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
