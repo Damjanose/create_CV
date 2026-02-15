@@ -388,8 +388,12 @@ const useWizardForm = (): UseWizardFormReturn => {
     address2: "",
   });
   const [languages, setLanguages] = useState<Language[]>([]);
-  const [experience, setExperience] = useState<Experience[]>([]);
-  const [education, setEducation] = useState<Education[]>([]);
+  const [experience, setExperience] = useState<Experience[]>([
+    { jobTitle: "", company: "", startDate: "", endDate: "", description: "", ongoing: false },
+  ]);
+  const [education, setEducation] = useState<Education[]>([
+    { school: "", degree: "", startDate: "", endDate: "", description: "", ongoing: false },
+  ]);
   const [skills, setSkills] = useState<string[]>([""]);
   const [hobbies, setHobbies] = useState<string[]>([""]);
   const [errors, setErrors] = useState<
@@ -664,20 +668,28 @@ const useWizardForm = (): UseWizardFormReturn => {
       return valid;
     }
     if (step === 3) {
-      // Languages & Skills step
+      // Languages & Skills step - per-field validation
       const hasLanguages = languages.length > 0 && languages.some(l => l.name && l.name.trim() !== "");
       const hasSkills = skills.length > 0 && skills.some(s => s && s.trim() !== "");
-      
-      if (!hasLanguages && !hasSkills) {
-        setErrorMsg("Please add at least one language and one skill.");
-        return false;
-      }
+      const newFieldErrors: Record<string, string> = {};
+
       if (!hasLanguages) {
-        setErrorMsg("Please add at least one language.");
-        return false;
+        newFieldErrors.languages = "Please add at least one language.";
       }
       if (!hasSkills) {
-        setErrorMsg("Please add at least one skill.");
+        newFieldErrors.skills = "Please add at least one skill.";
+      }
+      // Check for languages with empty names
+      languages.forEach((l, i) => {
+        if (!l.name || l.name.trim() === "") {
+          newFieldErrors[`language_${i}`] = "Language name is required.";
+        }
+      });
+
+      if (Object.keys(newFieldErrors).length > 0) {
+        setFieldErrors(newFieldErrors);
+        const count = Object.keys(newFieldErrors).length;
+        setErrorMsg(`Please fix ${count} error${count > 1 ? "s" : ""} below.`);
         return false;
       }
     }
@@ -745,6 +757,7 @@ const useWizardForm = (): UseWizardFormReturn => {
   };
   const handleBack = () => {
     setErrorMsg("");
+    setFieldErrors({});
     animateTo(step - 1);
   };
 

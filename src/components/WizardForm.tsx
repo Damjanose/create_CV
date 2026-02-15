@@ -1242,6 +1242,8 @@ const WizardForm = () => {
             setHobbies={setHobbies}
             styles={styles}
             isDark={isDark}
+            fieldErrors={fieldErrors}
+            clearFieldError={clearFieldError}
           />
         );
       case 4:

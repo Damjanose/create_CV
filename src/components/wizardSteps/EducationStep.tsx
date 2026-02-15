@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleProp,
   Text,
@@ -9,9 +9,16 @@ import {
   ViewStyle,
   StyleSheet,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface Education {
   school: string;
@@ -37,6 +44,14 @@ const EducationStep: React.FC<EducationStepProps> = ({
 }) => {
   const [showStartPicker, setShowStartPicker] = useState<number | null>(null);
   const [showEndPicker, setShowEndPicker] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(
+    education.length > 0 ? 0 : null
+  );
+
+  const toggleExpand = useCallback((index: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedIndex((prev) => (prev === index ? null : index));
+  }, []);
 
   const formatDate = (dateString: string): Date => {
     if (dateString) {
@@ -108,7 +123,17 @@ const EducationStep: React.FC<EducationStepProps> = ({
     <View style={formStyles.container}>
       <Text style={styles.title}>Education</Text>
 
-      {education.map((edu, idx) => (
+      {education.map((edu, idx) => {
+        const isExpanded = expandedIndex === idx;
+        const hasSchool = edu.school.trim() !== "";
+        const hasDegree = edu.degree.trim() !== "";
+        const summaryText = hasSchool ? edu.school : "Untitled education";
+        const subtitleText = hasDegree ? edu.degree : "";
+        const dateText = edu.startDate
+          ? `${edu.startDate} - ${edu.ongoing ? "Present" : (edu.endDate || "...")}`
+          : "";
+
+        return (
         <View
           key={idx}
           style={[
@@ -119,27 +144,86 @@ const EducationStep: React.FC<EducationStepProps> = ({
             },
           ]}
         >
-          <View style={formStyles.cardHeader}>
-            <View style={formStyles.cardHeaderLeft}>
+          {/* Collapsible header - always visible */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => toggleExpand(idx)}
+            style={formStyles.collapsibleHeader}
+          >
+            <View style={formStyles.collapsedInfo}>
               <View
                 style={[
                   formStyles.cardIcon,
                   { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
                 ]}
               >
-                <MaterialCommunityIcons name="school" size={20} color="#fff" />
+                <MaterialCommunityIcons name="school" size={18} color="#fff" />
               </View>
-              <Text style={formStyles.cardNumber}>Education #{idx + 1}</Text>
+              <View style={formStyles.collapsedTextContainer}>
+                <Text
+                  style={[
+                    formStyles.collapsedTitle,
+                    { color: hasSchool ? (isDark ? "#FFF" : "#222") : (isDark ? "#666" : "#999") },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {summaryText}
+                </Text>
+                {!isExpanded && (subtitleText || dateText) ? (
+                  <Text
+                    style={[formStyles.collapsedSubtitle, { color: isDark ? "#AAA" : "#666" }]}
+                    numberOfLines={1}
+                  >
+                    {[subtitleText, dateText].filter(Boolean).join(" · ")}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-            <TouchableOpacity
-              style={formStyles.removeButton}
-              onPress={() =>
-                setEducation((prev) => prev.filter((_, i) => i !== idx))
-              }
-            >
-              <MaterialCommunityIcons name="delete-outline" size={22} color="#E53935" />
-            </TouchableOpacity>
-          </View>
+            <View style={formStyles.collapsedActions}>
+              {!isExpanded && (
+                <TouchableOpacity
+                  style={formStyles.removeButton}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setEducation((prev) => prev.filter((_, i) => i !== idx));
+                    if (expandedIndex !== null && expandedIndex > idx) {
+                      setExpandedIndex(expandedIndex - 1);
+                    } else if (expandedIndex === idx) {
+                      setExpandedIndex(null);
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons name="delete-outline" size={20} color="#E53935" />
+                </TouchableOpacity>
+              )}
+              <MaterialCommunityIcons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={22}
+                color={isDark ? "#AAA" : "#666"}
+              />
+            </View>
+          </TouchableOpacity>
+
+          {/* Expanded content */}
+          {isExpanded && (
+            <View style={formStyles.expandedContent}>
+              <View style={formStyles.expandedHeaderRow}>
+                <Text style={formStyles.cardNumber}>Education #{idx + 1}</Text>
+                <TouchableOpacity
+                  style={formStyles.removeButton}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setEducation((prev) => prev.filter((_, i) => i !== idx));
+                    if (expandedIndex !== null && expandedIndex > idx) {
+                      setExpandedIndex(expandedIndex - 1);
+                    } else if (expandedIndex === idx) {
+                      setExpandedIndex(null);
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons name="delete-outline" size={22} color="#E53935" />
+                </TouchableOpacity>
+              </View>
 
           <View style={formStyles.inputRow}>
             <View style={[formStyles.inputContainer, { flex: 1 }]}>
@@ -303,8 +387,11 @@ const EducationStep: React.FC<EducationStepProps> = ({
               />
             </View>
           </View>
+            </View>
+          )}
         </View>
-      ))}
+        );
+      })}
 
       {/* Date Pickers - Render outside the map to avoid layout issues */}
       {/* Android: Only show one picker at a time, it shows as a modal */}
@@ -405,7 +492,8 @@ const EducationStep: React.FC<EducationStepProps> = ({
           formStyles.addButton,
           { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
         ]}
-        onPress={() =>
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setEducation((prev) => [
             ...prev,
             {
@@ -416,8 +504,9 @@ const EducationStep: React.FC<EducationStepProps> = ({
               description: "",
               ongoing: false,
             },
-          ])
-        }
+          ]);
+          setExpandedIndex(education.length);
+        }}
       >
         <MaterialCommunityIcons name="plus-circle" size={20} color="#fff" />
         <Text style={formStyles.addButtonText}>Add Education</Text>
@@ -431,10 +520,48 @@ const formStyles = StyleSheet.create({
     padding: 20,
   },
   educationCard: {
-    marginBottom: 20,
-    padding: 18,
+    marginBottom: 12,
     borderRadius: 16,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  collapsibleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+  },
+  collapsedInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 10,
+  },
+  collapsedTextContainer: {
+    flex: 1,
+  },
+  collapsedTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  collapsedSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  collapsedActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  expandedContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  expandedHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   cardHeader: {
     flexDirection: "row",

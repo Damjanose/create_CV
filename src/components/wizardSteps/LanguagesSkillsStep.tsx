@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleProp,
   Text,
@@ -9,8 +9,15 @@ import {
   ViewStyle,
   StyleSheet,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface Language {
   name: string;
@@ -26,6 +33,8 @@ interface LanguagesSkillsStepProps {
   setHobbies: (cb: (prev: string[]) => string[]) => void;
   styles: { [key: string]: StyleProp<ViewStyle | TextStyle> };
   isDark: boolean;
+  fieldErrors?: Record<string, string>;
+  clearFieldError?: (field: string) => void;
 }
 
 const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
@@ -37,7 +46,20 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
   setHobbies,
   styles,
   isDark,
+  fieldErrors,
+  clearFieldError,
 }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(
+    languages.length > 0 ? languages.length - 1 : null
+  );
+
+  const levelLabelsMap = ["Beginner", "Basic", "Intermediate", "Advanced", "Native"];
+
+  const toggleExpand = useCallback((index: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedIndex((prev) => (prev === index ? null : index));
+  }, []);
+
   const LevelSelector: React.FC<{
     level: number;
     onLevelChange: (level: number) => void;
@@ -152,7 +174,12 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
           style={[formStyles.skillInput, { color: isDark ? "#FFF" : "#222" }]}
           placeholder={isEmpty ? "Add skill..." : "Skill"}
           value={item}
-          onChangeText={(val) => handleSkillChange(index, val)}
+          onChangeText={(val) => {
+            handleSkillChange(index, val);
+            if (val.trim() !== "") {
+              clearFieldError?.("skills");
+            }
+          }}
           placeholderTextColor={isDark ? "#888" : "#999"}
           multiline
           textAlignVertical="top"
@@ -231,68 +258,177 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
           <Text style={[styles.label, formStyles.sectionTitle]}>Languages</Text>
         </View>
 
-        {languages.map((lang, idx) => (
-          <View
-            key={idx}
-            style={[
-              formStyles.languageCard,
-              {
-                backgroundColor: isDark ? "rgba(79, 142, 247, 0.1)" : "rgba(25, 118, 210, 0.05)",
-                borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
-              },
-            ]}
-          >
-            <View style={formStyles.languageHeader}>
-              <View style={formStyles.inputWithIcon}>
-                <MaterialCommunityIcons
-                  name="translate"
-                  size={20}
-                  color={isDark ? "#4F8EF7" : "#1976D2"}
-                  style={formStyles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, formStyles.languageInput]}
-                  placeholder="Language name"
-                  value={lang.name}
-                  onChangeText={(name) => {
-                    setLanguages((prev) => {
-                      const newLangs = [...prev];
-                      newLangs[idx] = { ...newLangs[idx], name };
-                      return newLangs;
-                    });
-                  }}
-                  placeholderTextColor={isDark ? "#888" : "#999"}
-                />
-              </View>
-              <TouchableOpacity
-                style={formStyles.deleteButton}
-                onPress={() =>
-                  setLanguages((prev) => prev.filter((_, i) => i !== idx))
-                }
-              >
-                <MaterialCommunityIcons name="delete-outline" size={22} color="#E53935" />
-              </TouchableOpacity>
-            </View>
-            <LevelSelector
-              level={lang.level}
-              onLevelChange={(level) => {
-                setLanguages((prev) => {
-                  const newLangs = [...prev];
-                  newLangs[idx] = { ...newLangs[idx], level };
-                  return newLangs;
-                });
-              }}
-              isDark={isDark}
-            />
+        {fieldErrors?.languages && (
+          <View style={formStyles.fieldErrorBox}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#E53935" />
+            <Text style={formStyles.fieldErrorText}>{fieldErrors.languages}</Text>
           </View>
-        ))}
+        )}
+
+        {languages.map((lang, idx) => {
+          const isExpanded = expandedIndex === idx;
+          const hasName = lang.name.trim() !== "";
+
+          return (
+            <View
+              key={idx}
+              style={[
+                formStyles.languageCard,
+                {
+                  backgroundColor: isDark ? "rgba(79, 142, 247, 0.1)" : "rgba(25, 118, 210, 0.05)",
+                  borderColor: fieldErrors?.[`language_${idx}`]
+                    ? "#E53935"
+                    : (isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)"),
+                },
+              ]}
+            >
+              {/* Collapsed header - always visible, tappable */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => toggleExpand(idx)}
+                style={formStyles.collapsibleHeader}
+              >
+                <View style={formStyles.collapsedInfo}>
+                  <MaterialCommunityIcons
+                    name="translate"
+                    size={20}
+                    color={isDark ? "#4F8EF7" : "#1976D2"}
+                  />
+                  <Text
+                    style={[
+                      formStyles.collapsedName,
+                      { color: hasName ? (isDark ? "#FFF" : "#222") : (isDark ? "#666" : "#999") },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {hasName ? lang.name : "Untitled language"}
+                  </Text>
+                  {!isExpanded && hasName && (
+                    <View style={formStyles.collapsedLevelBadge}>
+                      <View style={formStyles.collapsedLevelDots}>
+                        {[1, 2, 3, 4, 5].map((lvl) => (
+                          <View
+                            key={lvl}
+                            style={[
+                              formStyles.levelDot,
+                              {
+                                backgroundColor:
+                                  lang.level >= lvl
+                                    ? (isDark ? "#4F8EF7" : "#1976D2")
+                                    : (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"),
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      <Text style={[formStyles.collapsedLevelLabel, { color: isDark ? "#AAA" : "#666" }]}>
+                        {levelLabelsMap[lang.level - 1] || ""}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={formStyles.collapsedActions}>
+                  {!isExpanded && (
+                    <TouchableOpacity
+                      style={formStyles.deleteButton}
+                      onPress={() => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        setLanguages((prev) => prev.filter((_, i) => i !== idx));
+                        if (expandedIndex !== null && expandedIndex > idx) {
+                          setExpandedIndex(expandedIndex - 1);
+                        } else if (expandedIndex === idx) {
+                          setExpandedIndex(null);
+                        }
+                      }}
+                    >
+                      <MaterialCommunityIcons name="delete-outline" size={20} color="#E53935" />
+                    </TouchableOpacity>
+                  )}
+                  <MaterialCommunityIcons
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={22}
+                    color={isDark ? "#AAA" : "#666"}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Expanded content */}
+              {isExpanded && (
+                <View style={formStyles.expandedContent}>
+                  <View style={formStyles.languageHeader}>
+                    <View style={formStyles.inputWithIcon}>
+                      <MaterialCommunityIcons
+                        name="translate"
+                        size={20}
+                        color={isDark ? "#4F8EF7" : "#1976D2"}
+                        style={formStyles.inputIcon}
+                      />
+                      <TextInput
+                        style={[styles.input, formStyles.languageInput]}
+                        placeholder="Language name"
+                        value={lang.name}
+                        onChangeText={(name) => {
+                          setLanguages((prev) => {
+                            const newLangs = [...prev];
+                            newLangs[idx] = { ...newLangs[idx], name };
+                            return newLangs;
+                          });
+                          clearFieldError?.(`language_${idx}`);
+                          clearFieldError?.("languages");
+                        }}
+                        placeholderTextColor={isDark ? "#888" : "#999"}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={formStyles.deleteButton}
+                      onPress={() => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        setLanguages((prev) => prev.filter((_, i) => i !== idx));
+                        if (expandedIndex !== null && expandedIndex > idx) {
+                          setExpandedIndex(expandedIndex - 1);
+                        } else if (expandedIndex === idx) {
+                          setExpandedIndex(null);
+                        }
+                      }}
+                    >
+                      <MaterialCommunityIcons name="delete-outline" size={22} color="#E53935" />
+                    </TouchableOpacity>
+                  </View>
+                  <LevelSelector
+                    level={lang.level}
+                    onLevelChange={(level) => {
+                      setLanguages((prev) => {
+                        const newLangs = [...prev];
+                        newLangs[idx] = { ...newLangs[idx], level };
+                        return newLangs;
+                      });
+                    }}
+                    isDark={isDark}
+                  />
+                </View>
+              )}
+              {/* Per-language error */}
+              {fieldErrors?.[`language_${idx}`] && !isExpanded && (
+                <View style={[formStyles.fieldErrorBox, { marginHorizontal: 12, marginBottom: 8, marginTop: -4 }]}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={14} color="#E53935" />
+                  <Text style={[formStyles.fieldErrorText, { fontSize: 12 }]}>{fieldErrors[`language_${idx}`]}</Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
 
         <TouchableOpacity
           style={[
             formStyles.addButton,
             { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
           ]}
-          onPress={() => setLanguages((prev) => [...prev, { name: "", level: 1 }])}
+          onPress={() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setLanguages((prev) => [...prev, { name: "", level: 1 }]);
+            setExpandedIndex(languages.length);
+            clearFieldError?.("languages");
+          }}
         >
           <MaterialCommunityIcons name="plus-circle" size={20} color="#fff" />
           <Text style={formStyles.addButtonText}>Add Language</Text>
@@ -309,6 +445,13 @@ const LanguagesSkillsStep: React.FC<LanguagesSkillsStepProps> = ({
           />
           <Text style={[styles.label, formStyles.sectionTitle]}>Skills</Text>
         </View>
+
+        {fieldErrors?.skills && (
+          <View style={formStyles.fieldErrorBox}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#E53935" />
+            <Text style={formStyles.fieldErrorText}>{fieldErrors.skills}</Text>
+          </View>
+        )}
 
         <View style={formStyles.chipsContainer}>
           {skills.map((item, index) => {
@@ -372,10 +515,55 @@ const formStyles = StyleSheet.create({
     marginLeft: 8,
   },
   languageCard: {
-    padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  collapsibleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+  },
+  collapsedInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 8,
+  },
+  collapsedName: {
+    fontSize: 15,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  collapsedLevelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginLeft: 4,
+  },
+  collapsedLevelDots: {
+    flexDirection: "row",
+    gap: 3,
+  },
+  levelDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  collapsedLevelLabel: {
+    fontSize: 11,
+    fontStyle: "italic",
+  },
+  collapsedActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  expandedContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   languageHeader: {
     flexDirection: "row",
@@ -473,6 +661,22 @@ const formStyles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
+  },
+  fieldErrorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(229, 57, 53, 0.08)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  fieldErrorText: {
+    color: "#E53935",
+    fontSize: 13,
+    fontWeight: "500",
+    flex: 1,
   },
 });
 
