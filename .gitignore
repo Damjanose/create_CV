@@ -80,3 +80,4 @@ package-lock.json
 ios/Podfile.lock
 
 .env
+docs

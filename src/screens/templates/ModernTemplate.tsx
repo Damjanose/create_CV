@@ -1,6 +1,6 @@
 // ModernTemplate.tsx
 import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface AboutMe {
@@ -55,7 +55,14 @@ const ModernTemplate: React.FC<Props> = ({
   experience,
 }) => {
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <ScrollView 
+      style={{ flex: 1 }} 
+      contentContainerStyle={styles.scroll}
+      nestedScrollEnabled={true}
+      showsVerticalScrollIndicator={true}
+      bounces={true}
+      scrollEnabled={true}
+    >
       <View style={styles.a4}>
         <View style={styles.content}>
           {/* Header */}
@@ -154,17 +161,16 @@ const ModernTemplate: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   scroll: {
-    flexGrow: 1,
     alignItems: "center",
     paddingVertical: 32,
+    paddingBottom: 100,
     backgroundColor: "#bbb",
   },
   a4: {
     width: 300,
-    aspectRatio: 1 / 1.414,
+    minHeight: 424, // A4 height (300 * 1.414)
     backgroundColor: "#fff",
     borderRadius: 4,
-    overflow: "hidden",
   },
   content: {
     flex: 1,

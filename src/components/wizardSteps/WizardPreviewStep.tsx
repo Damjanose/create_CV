@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import ClassicTemplate from "../../screens/templates/ClassicTemplate.tsx";
 import ModernTemplate from "../../screens/templates/ModernTemplate.tsx";
 import MinimalTemplate from "../../screens/templates/MinimalTemplate.tsx";
@@ -13,6 +13,7 @@ interface WizardPreviewStepProps {
   address: any;
   skills: any[];
   languages: any[];
+  hobbies: any[];
   styles: any;
 }
 
@@ -25,6 +26,7 @@ const WizardPreviewStep = ({
   address,
   skills,
   languages,
+  hobbies,
   styles,
 }: WizardPreviewStepProps) => {
   let TemplateComponent: React.ComponentType<any> | null = null;
@@ -36,7 +38,7 @@ const WizardPreviewStep = ({
       company: exp.company,
       location: "",
       startDate: exp.startDate,
-      endDate: exp.endDate,
+      endDate: exp.ongoing ? "Present" : exp.endDate,
       position: exp.jobTitle,
       bullets: exp.description
         ? exp.description.split("\n").filter(Boolean)
@@ -45,7 +47,7 @@ const WizardPreviewStep = ({
     const timelineEducation = education.map((edu: any) => ({
       institution: edu.school,
       location: "",
-      year: `${edu.startDate} – ${edu.endDate}`,
+      year: `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`,
       degree: edu.degree,
       bullets: edu.description
         ? edu.description.split("\n").filter(Boolean)
@@ -57,7 +59,7 @@ const WizardPreviewStep = ({
       imageUri: aboutMe.image,
       links: [],
       reference: { name: "", title: "", phone: "", email: "" },
-      hobbies: [],
+      hobbies: (hobbies || []).filter((h: string) => h && h.trim() !== ""),
       name: contact.name,
       lastname: contact.lastname,
       jobTitle: "",
@@ -65,7 +67,7 @@ const WizardPreviewStep = ({
       address,
       experience: timelineExperience,
       education: timelineEducation,
-      skills,
+      skills: (skills || []).filter((s: string) => s && s.trim() !== ""),
       languages,
     };
   } else if (selectedTemplate === "modern") {
@@ -82,9 +84,9 @@ const WizardPreviewStep = ({
         phone: contact.phone,
         imageUri: aboutMe.image,
       },
-      skills: { hard: skills, soft: [] },
+      skills: { hard: (skills || []).filter((s: string) => s && s.trim() !== ""), soft: [] },
       experience: experience.map((exp: any) => ({
-        period: `${exp.startDate} – ${exp.endDate}`,
+        period: `${exp.startDate} – ${exp.ongoing ? "Present" : exp.endDate}`,
         company: exp.company,
         role: exp.jobTitle,
         bullets: exp.description
@@ -92,7 +94,7 @@ const WizardPreviewStep = ({
           : [],
       })),
       education: education.map((edu: any) => ({
-        period: `${edu.startDate} – ${edu.endDate}`,
+        period: `${edu.startDate} – ${edu.ongoing ? "Present" : edu.endDate}`,
         location: "",
         degree: edu.degree,
         school: edu.school,
@@ -112,11 +114,11 @@ const WizardPreviewStep = ({
         email: contact.email,
         phone: contact.phone,
         address: `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`,
-        languages: languages.map((l: any) => l.name),
+        languages: languages,
       },
       experience,
       education,
-      skills,
+      skills: (skills || []).filter((s: string) => s && s.trim() !== ""),
       contact,
       address,
     };
@@ -126,24 +128,22 @@ const WizardPreviewStep = ({
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f2f4f8" }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}>
-        {TemplateComponent ? (
-          <TemplateComponent {...templateProps} />
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 32,
-            }}
-          >
-            <Text style={{ color: "#888", fontSize: 18 }}>
-              No template selected.
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+      {TemplateComponent ? (
+        <TemplateComponent {...templateProps} />
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <Text style={{ color: "#888", fontSize: 18 }}>
+            No template selected.
+          </Text>
+        </View>
+      )}
     </View>
   );
 };

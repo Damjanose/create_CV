@@ -6,6 +6,11 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.0.21"
+        // Override for react-native-document-picker
+        DocumentPicker_compileSdkVersion = 35
+        DocumentPicker_buildToolsVersion = "35.0.0"
+        DocumentPicker_minSdkVersion = 24
+        DocumentPicker_targetSdkVersion = 35
     }
     repositories {
         google()

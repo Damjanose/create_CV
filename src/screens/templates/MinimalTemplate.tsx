@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 interface AboutMe {
   name: string;
@@ -18,6 +18,7 @@ interface Experience {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 
 interface Education {
@@ -26,6 +27,7 @@ interface Education {
   startDate: string;
   endDate: string;
   description: string;
+  ongoing?: boolean;
 }
 
 interface Props {
@@ -67,7 +69,14 @@ const MinimalTemplate: React.FC<Props> = ({
   address,
 }) => {
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <ScrollView 
+      style={{ flex: 1 }} 
+      contentContainerStyle={styles.scroll}
+      nestedScrollEnabled={true}
+      showsVerticalScrollIndicator={true}
+      bounces={true}
+      scrollEnabled={true}
+    >
       <View style={styles.a4}>
         <View style={styles.header}>
           <Image source={getImageSource(aboutMe)} style={styles.avatar} />
@@ -106,27 +115,45 @@ const MinimalTemplate: React.FC<Props> = ({
           <View style={styles.content}>
             <Text style={styles.headerTitle}>Experience</Text>
             <View style={styles.divider} />
-            {experience.map((exp, i) => (
-              <View key={i} style={styles.block}>
-                <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
-                <Text style={styles.meta}>
-                  {exp.company} ({exp.startDate} – {exp.endDate})
-                </Text>
-                <Text style={styles.bullet}>• {exp.description}</Text>
-              </View>
-            ))}
+            {experience.map((exp, i) => {
+              const bullets = exp.description ? exp.description.split("\n").filter(Boolean) : [];
+              return (
+                <View key={i} style={styles.block}>
+                  <Text style={styles.blockTitle}>{exp.jobTitle}</Text>
+                  <Text style={styles.meta}>
+                    {exp.company} ({exp.startDate} – {exp.ongoing ? "Present" : exp.endDate})
+                  </Text>
+                  {bullets.length > 0 ? (
+                    bullets.map((b, j) => (
+                      <Text key={j} style={styles.bullet}>• {b}</Text>
+                    ))
+                  ) : (
+                    exp.description ? <Text style={styles.bullet}>• {exp.description}</Text> : null
+                  )}
+                </View>
+              );
+            })}
 
             <Text style={styles.headerTitle}>Education</Text>
             <View style={styles.divider} />
-            {education.map((edu, i) => (
-              <View key={i} style={styles.block}>
-                <Text style={styles.blockTitle}>{edu.degree}</Text>
-                <Text style={styles.meta}>
-                  {edu.school} ({edu.startDate} – {edu.endDate})
-                </Text>
-                <Text style={styles.bullet}>• {edu.description}</Text>
-              </View>
-            ))}
+            {education.map((edu, i) => {
+              const bullets = edu.description ? edu.description.split("\n").filter(Boolean) : [];
+              return (
+                <View key={i} style={styles.block}>
+                  <Text style={styles.blockTitle}>{edu.degree}</Text>
+                  <Text style={styles.meta}>
+                    {edu.school} ({edu.startDate} – {edu.ongoing ? "Present" : edu.endDate})
+                  </Text>
+                  {bullets.length > 0 ? (
+                    bullets.map((b, j) => (
+                      <Text key={j} style={styles.bullet}>• {b}</Text>
+                    ))
+                  ) : (
+                    edu.description ? <Text style={styles.bullet}>• {edu.description}</Text> : null
+                  )}
+                </View>
+              );
+            })}
           </View>
         </View>
       </View>
@@ -136,14 +163,14 @@ const MinimalTemplate: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   scroll: {
-    flexGrow: 1,
     alignItems: "center",
     paddingVertical: 32,
+    paddingBottom: 100,
     backgroundColor: "#bbb",
   },
   a4: {
     width: 300,
-    aspectRatio: 1 / 1.414,
+    minHeight: 424, // A4 height (300 * 1.414)
     backgroundColor: "#fff",
     borderRadius: 4,
     shadowColor: "#000",
@@ -151,7 +178,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 3,
     elevation: 2,
-    overflow: "hidden",
   },
   row: {
     flexDirection: "row",
