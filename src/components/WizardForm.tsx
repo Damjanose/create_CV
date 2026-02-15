@@ -1284,7 +1284,7 @@ const WizardForm = () => {
     <>
       {step === steps.length - 1 ? (
         // Preview step - render without KeyboardAvoidingView and ScrollView to allow proper scrolling
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: styles.container.backgroundColor }}>
           <View style={[styles.buttonRow, { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 }]}>
             <TouchableOpacity
               style={[
@@ -1340,9 +1340,9 @@ const WizardForm = () => {
         </View>
       ) : (
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: styles.container.backgroundColor }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
         <ScrollView
           contentContainerStyle={styles.container}
@@ -1530,7 +1530,7 @@ const WizardForm = () => {
         onRequestClose={() => setShowPdfPreview(false)}
       >
         <View style={[previewStyles.container, { backgroundColor: isDark ? "#181A20" : "#f2f4f8" }]}>
-          <View style={[previewStyles.header, { backgroundColor: isDark ? "#23262F" : "#FFF" }]}>
+          <View style={[previewStyles.header, { backgroundColor: isDark ? "#23262F" : "#FFF", paddingTop: insets.top + 12 }]}>
             <TouchableOpacity
               style={previewStyles.closeButton}
               onPress={() => setShowPdfPreview(false)}
@@ -1552,7 +1552,7 @@ const WizardForm = () => {
             />
           </View>
           
-          <View style={[previewStyles.footer, { backgroundColor: isDark ? "#23262F" : "#FFF" }]}>
+          <View style={[previewStyles.footer, { backgroundColor: isDark ? "#23262F" : "#FFF", paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity
               style={[previewStyles.footerButton, previewStyles.cancelButton, { borderColor: isDark ? "#4F8EF7" : "#1976D2" }]}
               onPress={() => setShowPdfPreview(false)}
@@ -1697,7 +1697,7 @@ const previewStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === "ios" ? 50 : 12,
+    paddingTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.1)",
   },
@@ -1730,7 +1730,7 @@ const previewStyles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+    paddingBottom: 16,
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.1)",
