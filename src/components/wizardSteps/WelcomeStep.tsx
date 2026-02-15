@@ -13,6 +13,7 @@ interface WelcomeStepProps {
   isDark: boolean;
   onCreateResume: () => void;
   onUploadResume: () => void;
+  uploadComingSoon?: boolean;
   toggleDarkMode: () => void;
   toggleAnim: Animated.Value;
 }
@@ -22,6 +23,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
   isDark,
   onCreateResume,
   onUploadResume,
+  uploadComingSoon = false,
   toggleDarkMode,
   toggleAnim,
 }) => {
@@ -122,21 +124,32 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
             style={[
               welcomeStyles.actionButton,
               welcomeStyles.secondaryButton,
+              uploadComingSoon && welcomeStyles.comingSoonButton,
               {
-                backgroundColor: isDark ? "#23262F" : "#FFFFFF",
+                backgroundColor: uploadComingSoon
+                  ? (isDark ? "#2B2D33" : "#F1F3F5")
+                  : (isDark ? "#23262F" : "#FFFFFF"),
                 borderWidth: 2,
-                borderColor: isDark ? "#4F8EF7" : "#1976D2",
+                borderColor: uploadComingSoon
+                  ? (isDark ? "#555A64" : "#CDD3DA")
+                  : (isDark ? "#4F8EF7" : "#1976D2"),
               },
             ]}
             onPress={onUploadResume}
+            disabled={uploadComingSoon}
+            activeOpacity={uploadComingSoon ? 1 : 0.2}
           >
             <Text
               style={[
                 welcomeStyles.secondaryButtonText,
-                { color: isDark ? "#4F8EF7" : "#1976D2" },
+                {
+                  color: uploadComingSoon
+                    ? (isDark ? "#8B9099" : "#98A2AD")
+                    : (isDark ? "#4F8EF7" : "#1976D2"),
+                },
               ]}
             >
-              Upload CV
+              {uploadComingSoon ? "Upload CV (Coming Soon)" : "Upload CV"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -247,6 +260,9 @@ const welcomeStyles = StyleSheet.create({
   },
   secondaryButton: {
     // Styles applied via borderColor prop
+  },
+  comingSoonButton: {
+    opacity: 1,
   },
   actionButtonText: {
     color: "#FFF",

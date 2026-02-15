@@ -237,6 +237,92 @@ const WizardForm = () => {
     }
   };
 
+  const normalizeKey = (key: string): string =>
+    key
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  const KEY_ALIASES: Record<string, string[]> = {
+    "contact.name": ["name", "first_name", "firstname", "first", "given_name", "givenname"],
+    "contact.lastname": ["lastname", "last_name", "surname", "family_name", "familyname", "last"],
+    "contact.email": ["email", "mail", "email_address", "emailaddress"],
+    "contact.phone": ["phone", "phone_number", "phonenumber", "mobile", "telephone", "tel"],
+    "address.countryName": ["country", "country_name", "countryname"],
+    "address.cityName": ["city", "city_name", "cityname", "town"],
+    "address.address1": ["address", "address1", "street", "street_address", "streetaddress"],
+    "address.address2": ["address2", "apartment", "apt", "unit"],
+    "aboutMe.summary": ["summary", "about", "about_me", "aboutme", "profile", "objective", "professional_summary"],
+  };
+
+  const aliasToCanonical = Object.entries(KEY_ALIASES).reduce<Record<string, string>>((acc, [canonical, aliases]) => {
+    for (const alias of aliases) {
+      acc[normalizeKey(alias)] = canonical;
+    }
+    return acc;
+  }, {});
+
+  const toLanguageLevel = (rawLevel?: string): number => {
+    const level = (rawLevel || "").toLowerCase().trim();
+    if (!level) return 3;
+    if (["native", "c2"].includes(level)) return 5;
+    if (["fluent", "c1", "advanced", "b2", "proficient"].includes(level)) return 4;
+    if (["intermediate", "upper_intermediate", "upper intermediate", "b1"].includes(level)) return 3;
+    if (["basic", "elementary", "a2", "pre_intermediate", "pre intermediate"].includes(level)) return 2;
+    if (["beginner", "a1"].includes(level)) return 1;
+    return 3;
+  };
+
+  const decodeBase64ToBinary = (base64: string): string => {
+    if (typeof globalThis.atob === "function") {
+      return globalThis.atob(base64);
+    }
+
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    let output = "";
+    let buffer = 0;
+    let accumulatedBits = 0;
+
+    for (let index = 0; index < base64.length; index++) {
+      const char = base64.charAt(index);
+      if (char === "=") break;
+      const value = chars.indexOf(char);
+      if (value < 0) continue;
+
+      buffer = (buffer << 6) | value;
+      accumulatedBits += 6;
+
+      if (accumulatedBits >= 8) {
+        accumulatedBits -= 8;
+        output += String.fromCharCode((buffer >> accumulatedBits) & 0xff);
+      }
+    }
+
+    return output;
+  };
+
+  const isLikelyHumanText = (value: string, minLength: number = 8): boolean => {
+    const text = (value || "").trim();
+    if (text.length < minLength) return false;
+
+    const withoutSpaces = text.replace(/\s+/g, "");
+    if (!withoutSpaces) return false;
+
+    const letters = (withoutSpaces.match(/[A-Za-z]/g) || []).length;
+    const digits = (withoutSpaces.match(/[0-9]/g) || []).length;
+    const allowedSymbols = (withoutSpaces.match(/[.,;:()@+\-/'&]/g) || []).length;
+    const unknownSymbols = Math.max(withoutSpaces.length - letters - digits - allowedSymbols, 0);
+
+    const alphaRatio = letters / withoutSpaces.length;
+    const noiseRatio = unknownSymbols / withoutSpaces.length;
+
+    const words = text.split(/\s+/).filter(Boolean);
+    const wordLike = words.filter(word => /[A-Za-z]{2,}/.test(word)).length;
+    const wordRatio = wordLike / Math.max(words.length, 1);
+
+    return alphaRatio >= 0.45 && noiseRatio <= 0.08 && wordRatio >= 0.45;
+  };
+
   // Function to parse CV text and extract information
   const parseCVText = (text: string) => {
     const parsedData: any = {
@@ -249,20 +335,51 @@ const WizardForm = () => {
       languages: [],
     };
 
-    // Normalize text - fix common PDF extraction issues
-    let normalizedText = text
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\s+/g, ' ')
-      .replace(/\n\s*\n/g, '\n')
+    // Preserve line structure to improve section/key parsing reliability
+    const normalizedText = text
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .map(line => line.replace(/[\t ]+/g, " ").trim())
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
+
+    const lines = normalizedText.split("\n").map(line => line.trim()).filter(Boolean);
+    const flatText = lines.join(" ");
 
     console.log("Normalized text for parsing:", normalizedText.substring(0, 1000));
 
+    // ========== DIRECT KEY:VALUE MAPPING ==========
+    for (const line of lines) {
+      const keyValueMatch = line.match(/^([A-Za-z][A-Za-z\s_\-/]{1,40})\s*[:\-–—]\s*(.+)$/);
+      if (!keyValueMatch) continue;
+      const rawKey = normalizeKey(keyValueMatch[1]);
+      const value = keyValueMatch[2].trim();
+      if (!value) continue;
+
+      const canonical = aliasToCanonical[rawKey];
+      if (!canonical) continue;
+
+      if (canonical === "contact.name") parsedData.contact.name = value;
+      if (canonical === "contact.lastname") parsedData.contact.lastname = value;
+      if (canonical === "contact.email") parsedData.contact.email = value.toLowerCase();
+      if (canonical === "contact.phone") parsedData.contact.phone = value;
+      if (canonical === "address.countryName") parsedData.address.countryName = value;
+      if (canonical === "address.cityName") parsedData.address.cityName = value;
+      if (canonical === "address.address1") parsedData.address.address1 = value;
+      if (canonical === "address.address2") parsedData.address.address2 = value;
+      if (canonical === "aboutMe.summary" && isLikelyHumanText(value, 20)) {
+        parsedData.aboutMe.summary = value;
+      }
+    }
+
     // ========== EXTRACT EMAIL ==========
-    const emailMatch = normalizedText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/i);
+    const emailMatch = flatText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/i);
     if (emailMatch) {
-      parsedData.contact.email = emailMatch[0].toLowerCase();
+      if (!parsedData.contact.email) {
+        parsedData.contact.email = emailMatch[0].toLowerCase();
+      }
       console.log("Found email:", parsedData.contact.email);
     }
 
@@ -277,12 +394,14 @@ const WizardForm = () => {
     ];
     
     for (const pattern of phonePatterns) {
-      const phoneMatch = normalizedText.match(pattern);
+      const phoneMatch = flatText.match(pattern);
       if (phoneMatch) {
         // Clean the phone number
         let phone = phoneMatch[0].replace(/[^\d+\-\(\)\s]/g, '').trim();
         if (phone.length >= 7) {
-          parsedData.contact.phone = phone;
+          if (!parsedData.contact.phone) {
+            parsedData.contact.phone = phone;
+          }
           console.log("Found phone:", parsedData.contact.phone);
           break;
         }
@@ -291,8 +410,6 @@ const WizardForm = () => {
 
     // ========== EXTRACT NAME ==========
     // Strategy 1: Look for name patterns at the beginning
-    const lines = normalizedText.split(/\n/).filter(line => line.trim().length > 0);
-    
     // Common section headers to skip
     const sectionHeaders = /^(contact|about|summary|profile|experience|work|education|skills|languages|hobbies|interests|objective|curriculum vitae|cv|resume)/i;
     
@@ -318,8 +435,12 @@ const WizardForm = () => {
         );
         
         if (looksLikeName || i === 0) {
-          parsedData.contact.name = words[0];
-          parsedData.contact.lastname = words.slice(1).join(' ');
+          if (!parsedData.contact.name) {
+            parsedData.contact.name = words[0];
+          }
+          if (!parsedData.contact.lastname) {
+            parsedData.contact.lastname = words.slice(1).join(' ');
+          }
           console.log("Found name:", parsedData.contact.name, parsedData.contact.lastname);
           break;
         }
@@ -328,8 +449,8 @@ const WizardForm = () => {
 
     // Strategy 2: If no name found, look near email
     if (!parsedData.contact.name && emailMatch) {
-      const emailIndex = normalizedText.indexOf(emailMatch[0]);
-      const textBeforeEmail = normalizedText.substring(Math.max(0, emailIndex - 100), emailIndex);
+      const emailIndex = flatText.indexOf(emailMatch[0]);
+      const textBeforeEmail = flatText.substring(Math.max(0, emailIndex - 100), emailIndex);
       const nameCandidate = textBeforeEmail.match(/([A-Z][a-z]+)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
       if (nameCandidate) {
         parsedData.contact.name = nameCandidate[1];
@@ -350,10 +471,14 @@ const WizardForm = () => {
     
     for (const country of countries) {
       const countryRegex = new RegExp(`([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)[,\\s]+${country}`, 'i');
-      const match = normalizedText.match(countryRegex);
+      const match = flatText.match(countryRegex);
       if (match) {
-        parsedData.address.cityName = match[1].trim();
-        parsedData.address.countryName = country;
+        if (!parsedData.address.cityName) {
+          parsedData.address.cityName = match[1].trim();
+        }
+        if (!parsedData.address.countryName) {
+          parsedData.address.countryName = country;
+        }
         console.log("Found location:", parsedData.address.cityName, parsedData.address.countryName);
         break;
       }
@@ -380,7 +505,9 @@ const WizardForm = () => {
         }
         
         if (summary.length > 20) {
-          parsedData.aboutMe.summary = summary;
+          if (!parsedData.aboutMe.summary && isLikelyHumanText(summary, 30)) {
+            parsedData.aboutMe.summary = summary;
+          }
           console.log("Found summary:", summary.substring(0, 100));
           break;
         }
@@ -398,10 +525,9 @@ const WizardForm = () => {
       
       // Pattern to match job entries
       // Look for patterns like: "Job Title at Company" or "Job Title - Company" or date ranges
-      const dateRangePattern = /(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/gi;
+      const dateRangePattern = /(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*(?:-|–|—|to)\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/gi;
       
       // Split by date ranges to find job entries
-      const parts = expText.split(dateRangePattern);
       let currentExp: any = null;
       
       // Simpler approach: look for lines with dates and extract job info
@@ -423,7 +549,7 @@ const WizardForm = () => {
           }
           
           // Parse the job line
-          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
+          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*(?:-|–|—|to)\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
           
           // Remove dates from line to get job title and company
           let jobInfo = line.replace(dateRangePattern, '').trim();
@@ -434,8 +560,8 @@ const WizardForm = () => {
           currentExp = {
             jobTitle: jobParts[0]?.trim() || '',
             company: jobParts[1]?.trim() || jobParts[0]?.trim() || '',
-            startDate: dateMatch ? dateMatch[1] : '',
-            endDate: dateMatch ? dateMatch[2] : 'Present',
+            startDate: dateMatch ? dateMatch[1] : "",
+            endDate: dateMatch ? dateMatch[2] : "Present",
             ongoing: dateMatch ? /present|current|now/i.test(dateMatch[2]) : false,
             description: '',
           };
@@ -478,7 +604,7 @@ const WizardForm = () => {
             eduBuffer = [];
           }
           
-          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
+          const dateMatch = line.match(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*(?:-|–|—|to)\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/i);
           
           let eduInfo = line.replace(/(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|\w+\s+\d{4}|\d{4}|present|current|now)/gi, '').trim();
           eduInfo = eduInfo.replace(/[-–—•]/g, ' ').trim();
@@ -488,8 +614,8 @@ const WizardForm = () => {
           currentEdu = {
             degree: eduParts[0]?.trim() || '',
             school: eduParts[1]?.trim() || eduParts[0]?.trim() || '',
-            startDate: dateMatch ? dateMatch[1] : '',
-            endDate: dateMatch ? dateMatch[2] : 'Present',
+            startDate: dateMatch ? dateMatch[1] : "",
+            endDate: dateMatch ? dateMatch[2] : "Present",
             ongoing: dateMatch ? /present|current|now/i.test(dateMatch[2]) : false,
             description: '',
           };
@@ -544,22 +670,6 @@ const WizardForm = () => {
       console.log("Languages section found:", langText.substring(0, 200));
       
       // Common language levels
-      const levelMap: any = {
-        'native': 1.0,
-        'fluent': 0.9,
-        'advanced': 0.8,
-        'proficient': 0.75,
-        'upper intermediate': 0.7,
-        'intermediate': 0.6,
-        'pre-intermediate': 0.5,
-        'elementary': 0.4,
-        'beginner': 0.3,
-        'basic': 0.3,
-        'a1': 0.2, 'a2': 0.35,
-        'b1': 0.5, 'b2': 0.7,
-        'c1': 0.85, 'c2': 1.0,
-      };
-      
       // Common languages to look for
       const commonLanguages = ['English', 'Albanian', 'Italian', 'German', 'French', 'Spanish', 'Portuguese', 'Russian', 'Chinese', 'Japanese', 'Arabic', 'Turkish', 'Greek', 'Dutch', 'Polish', 'Romanian', 'Serbian', 'Croatian', 'Macedonian', 'Bulgarian'];
       
@@ -570,7 +680,21 @@ const WizardForm = () => {
           const level = match[1]?.toLowerCase() || 'intermediate';
           parsedData.languages.push({
             name: lang,
-            level: levelMap[level] || 0.5,
+            level: toLanguageLevel(level),
+          });
+        }
+      }
+
+      // Additional line-based language parsing for formats like: "English - C1"
+      for (const line of langText.split(/\n|,/).map(item => item.trim()).filter(Boolean)) {
+        const lineMatch = line.match(/^([A-Za-z][A-Za-z\s]{1,20})\s*[:\-–—]?\s*(native|fluent|advanced|proficient|upper intermediate|intermediate|pre-intermediate|elementary|beginner|basic|a1|a2|b1|b2|c1|c2)?$/i);
+        if (!lineMatch) continue;
+        const languageName = lineMatch[1].trim();
+        const alreadyAdded = parsedData.languages.some((item: any) => item.name.toLowerCase() === languageName.toLowerCase());
+        if (!alreadyAdded) {
+          parsedData.languages.push({
+            name: languageName,
+            level: toLanguageLevel(lineMatch[2]),
           });
         }
       }
@@ -578,10 +702,54 @@ const WizardForm = () => {
       console.log("Parsed languages:", parsedData.languages);
     }
 
+    // Fallback: if summary missing, use first meaningful paragraph
+    if (!parsedData.aboutMe.summary) {
+      const fallbackSummary = lines
+        .filter(line => line.length > 30 && line.length < 260)
+        .find(line => !sectionHeaders.test(line) && !line.includes("@") && !/\d{5,}/.test(line));
+      if (fallbackSummary && isLikelyHumanText(fallbackSummary, 30)) {
+        parsedData.aboutMe.summary = fallbackSummary;
+      }
+    }
+
+    if (parsedData.aboutMe.summary && !isLikelyHumanText(parsedData.aboutMe.summary, 30)) {
+      parsedData.aboutMe.summary = "";
+    }
+
+    // Fallback: infer first/last name from email prefix if still missing
+    if ((!parsedData.contact.name || !parsedData.contact.lastname) && parsedData.contact.email) {
+      const emailPrefix = parsedData.contact.email.split("@")[0] || "";
+      const nameParts = emailPrefix
+        .replace(/[._-]+/g, " ")
+        .split(" ")
+        .map(part => part.trim())
+        .filter(Boolean)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1));
+
+      if (!parsedData.contact.name && nameParts[0]) {
+        parsedData.contact.name = nameParts[0];
+      }
+      if (!parsedData.contact.lastname && nameParts.length > 1) {
+        parsedData.contact.lastname = nameParts.slice(1).join(" ");
+      }
+    }
+
+    // Remove duplicates from arrays
+    parsedData.skills = Array.from(new Set(parsedData.skills.map((skill: string) => skill.trim()).filter(Boolean)));
+    parsedData.languages = parsedData.languages.filter((lang: any, index: number, arr: any[]) => {
+      return arr.findIndex(item => item.name.toLowerCase() === lang.name.toLowerCase()) === index;
+    });
+
     return parsedData;
   };
 
   const handleUploadResume = async () => {
+    Alert.alert(
+      "Coming Soon",
+      "Upload CV is temporarily disabled while we improve parsing quality."
+    );
+    return;
+
     try {
       // Request storage permission for Android
       if (Platform.OS === "android") {
@@ -738,8 +906,8 @@ const WizardForm = () => {
         let extractedText = "";
         try {
           // Convert base64 to binary string and try to extract text
-          // This is a basic approach - for production, use a proper PDF parsing library
-          const binaryString = atob(base64Content);
+          // Uses fallback decoder for environments where atob is unavailable
+          const binaryString = decodeBase64ToBinary(base64Content);
           
           console.log("PDF binary size:", binaryString.length);
           
@@ -758,7 +926,10 @@ const WizardForm = () => {
               tjMatches.forEach(m => {
                 const text = m.match(/\((.*?)\)/)?.[1] || '';
                 if (text && text.length > 0) {
-                  textBlocks.push(decodesPdfString(text));
+                  const decoded = decodesPdfString(text);
+                  if (isLikelyHumanText(decoded, 2)) {
+                    textBlocks.push(decoded);
+                  }
                 }
               });
             }
@@ -770,7 +941,7 @@ const WizardForm = () => {
                 const texts = arrayContent.match(/\((.*?)\)/g);
                 if (texts) {
                   const combinedText = texts.map(t => decodesPdfString(t.replace(/[()]/g, ''))).join('');
-                  if (combinedText) textBlocks.push(combinedText);
+                  if (isLikelyHumanText(combinedText, 2)) textBlocks.push(combinedText);
                 }
               });
             }
@@ -806,9 +977,7 @@ const WizardForm = () => {
                 .filter(text => {
                   const trimmed = text.trim();
                   // Must have letters and be readable
-                  return trimmed.length > 1 && 
-                         /[A-Za-z]/.test(trimmed) &&
-                         !/^[\d\s.]+$/.test(trimmed); // Not just numbers/spaces
+                      return isLikelyHumanText(trimmed, 2);
                 });
               
               if (extractedParts.length > 0) {
@@ -838,7 +1007,7 @@ const WizardForm = () => {
                       decoded += ' ';
                     }
                   }
-                  if (decoded.trim().length > 3) {
+                  if (isLikelyHumanText(decoded, 3)) {
                     extractedText += ' ' + decoded;
                   }
                 } catch (e) {
@@ -858,7 +1027,10 @@ const WizardForm = () => {
                 // Try to find readable text sequences
                 const readable = stream.match(/[A-Za-z][A-Za-z\s@.\-+(),]{10,}/g);
                 if (readable) {
-                  extractedText += ' ' + readable.join(' ');
+                  const qualityReadable = readable.filter(item => isLikelyHumanText(item, 10));
+                  if (qualityReadable.length > 0) {
+                    extractedText += ' ' + qualityReadable.join(' ');
+                  }
                 }
               });
               console.log("Method 4 (streams) checked:", streamMatches.length, "streams");
@@ -885,19 +1057,35 @@ const WizardForm = () => {
             const readableText = binaryString.match(/[A-Za-z][A-Za-z\s]{15,}/g);
             if (readableText) {
               const filtered = readableText
-                .filter(text => text.trim().length > 10)
+                .filter(text => isLikelyHumanText(text, 10))
                 .join(' ');
-              extractedText += ' ' + filtered;
-              console.log("Method 5 (fallback readable) added");
+              if (filtered) {
+                extractedText += ' ' + filtered;
+                console.log("Method 5 (fallback readable) added");
+              }
             }
           }
           
-          // Clean up extracted text
+          // Clean up extracted text while preserving line structure for section parsing
           extractedText = extractedText
-            .replace(/\s+/g, ' ') // Normalize whitespace
-            .replace(/[^\x20-\x7E\n\r@.+\-]/g, ' ') // Keep printable ASCII + common chars
-            .replace(/\s+/g, ' ')
+            .replace(/[^\x20-\x7E\n\r@.+\-]/g, " ")
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n")
+            .split("\n")
+            .map(line => line.replace(/[\t ]+/g, " ").trim())
+            .join("\n")
+            .replace(/\n{3,}/g, "\n\n")
             .trim();
+
+          const qualityLines = extractedText
+            .split("\n")
+            .map(line => line.trim())
+            .filter(Boolean)
+            .filter(line => isLikelyHumanText(line, 2) || /@|\+?\d[\d\s\-()]{6,}/.test(line));
+
+          if (qualityLines.length > 0) {
+            extractedText = qualityLines.join("\n");
+          }
           
           console.log("=== FINAL EXTRACTED TEXT ===");
           console.log("Length:", extractedText.length);
@@ -921,39 +1109,50 @@ const WizardForm = () => {
           
           console.log("Parsed data:", parsedData);
           
-          // Auto-fill form fields with parsed data
-          if (parsedData.contact.name) {
-            setContact((prev) => ({ ...prev, name: parsedData.contact.name }));
-          }
-          if (parsedData.contact.lastname) {
-            setContact((prev) => ({ ...prev, lastname: parsedData.contact.lastname }));
-          }
-          if (parsedData.contact.email) {
-            setContact((prev) => ({ ...prev, email: parsedData.contact.email }));
-          }
-          if (parsedData.contact.phone) {
-            setContact((prev) => ({ ...prev, phone: parsedData.contact.phone }));
-          }
-          if (parsedData.address.cityName) {
-            setAddress((prev) => ({ ...prev, cityName: parsedData.address.cityName }));
-          }
-          if (parsedData.address.countryName) {
-            setAddress((prev) => ({ ...prev, countryName: parsedData.address.countryName }));
-          }
-          if (parsedData.aboutMe.summary) {
-            setAboutMe((prev) => ({ ...prev, summary: parsedData.aboutMe.summary }));
-          }
+          // Auto-fill form fields with parsed data (prefer existing values if user already typed)
+          setContact((prev) => ({
+            ...prev,
+            name: prev.name || parsedData.contact.name || prev.name,
+            lastname: prev.lastname || parsedData.contact.lastname || prev.lastname,
+            email: prev.email || parsedData.contact.email || prev.email,
+            phone: prev.phone || parsedData.contact.phone || prev.phone,
+          }));
+
+          setAddress((prev) => ({
+            ...prev,
+            cityName: prev.cityName || parsedData.address.cityName || prev.cityName,
+            countryName: prev.countryName || parsedData.address.countryName || prev.countryName,
+            address1: prev.address1 || parsedData.address.address1 || prev.address1,
+            address2: prev.address2 || parsedData.address.address2 || prev.address2,
+          }));
+
+          setAboutMe((prev) => ({
+            ...prev,
+            summary: (() => {
+              const prevIsValid = isLikelyHumanText(prev.summary || "", 30);
+              const nextIsValid = isLikelyHumanText(parsedData.aboutMe.summary || "", 30);
+
+              if (!prevIsValid && nextIsValid) return parsedData.aboutMe.summary;
+              if (!prevIsValid && !nextIsValid) return "";
+              return prev.summary || (nextIsValid ? parsedData.aboutMe.summary : prev.summary);
+            })(),
+          }));
+
           if (parsedData.experience.length > 0) {
-            setExperience(parsedData.experience);
+            setExperience((prev) => (prev.length > 0 ? prev : parsedData.experience));
           }
           if (parsedData.education.length > 0) {
-            setEducation(parsedData.education);
+            setEducation((prev) => (prev.length > 0 ? prev : parsedData.education));
           }
           if (parsedData.skills.length > 0) {
-            setSkills(parsedData.skills.filter((s: string) => s.trim() !== ""));
+            setSkills((prev) => {
+              const existing = prev.filter((item: string) => item.trim() !== "");
+              if (existing.length > 0) return prev;
+              return parsedData.skills.filter((s: string) => s.trim() !== "");
+            });
           }
           if (parsedData.languages.length > 0) {
-            setLanguages(parsedData.languages);
+            setLanguages((prev) => (prev.length > 0 ? prev : parsedData.languages));
           }
           
           console.log("=== AUTO-FILL SUMMARY ===");
@@ -1004,6 +1203,7 @@ const WizardForm = () => {
             isDark={isDark}
             onCreateResume={handleNext}
             onUploadResume={handleUploadResume}
+            uploadComingSoon={true}
             toggleDarkMode={toggleDarkMode}
             toggleAnim={toggleAnim}
           />
