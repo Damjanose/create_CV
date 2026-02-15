@@ -67,6 +67,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CV_DRAFT_KEY = "CV_DRAFT_DATA";
 const AUTO_SAVE_DEBOUNCE = 1000; // 1 second debounce
+const VALID_TEMPLATE_IDS = ["classic", "modern", "minimal"] as const;
+
+const normalizeTemplateId = (value?: string): string => {
+  const normalized = (value || "").trim().toLowerCase();
+  return VALID_TEMPLATE_IDS.includes(normalized as (typeof VALID_TEMPLATE_IDS)[number])
+    ? normalized
+    : "";
+};
 
 const stepLabels = [
   "Welcome",
@@ -383,6 +391,7 @@ const useWizardForm = (): UseWizardFormReturn => {
   const [hasDraft, setHasDraft] = useState<boolean>(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const resolvedTemplate = normalizeTemplateId(selectedTemplate);
 
   // ============ AUTO-SAVE FUNCTIONALITY ============
   
@@ -453,10 +462,11 @@ const useWizardForm = (): UseWizardFormReturn => {
         if (parsed.education) setEducation(parsed.education);
         if (parsed.skills && parsed.skills.length > 0) setSkills([...parsed.skills, ""]);
         if (parsed.hobbies && parsed.hobbies.length > 0) setHobbies([...parsed.hobbies, ""]);
-        if (parsed.selectedTemplate) setSelectedTemplate(parsed.selectedTemplate);
+        const restoredTemplate = normalizeTemplateId(parsed.selectedTemplate);
+        if (restoredTemplate) setSelectedTemplate(restoredTemplate);
         
         // Navigate to the saved step or template selection if data exists
-        const targetStep = parsed.selectedTemplate ? Math.min(parsed.step || 1, 6) : 1;
+        const targetStep = restoredTemplate ? Math.min(parsed.step || 1, 6) : 1;
         setStep(targetStep);
         
         Alert.alert("Draft Restored", "Your previous progress has been restored.");
@@ -501,7 +511,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     }
     if (step === 1) {
       // Template selection step - must have a template selected
-      if (!selectedTemplate) {
+      if (!resolvedTemplate) {
         setErrorMsg("Please select a template to continue.");
         return false;
       }
@@ -585,7 +595,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     }
     if (step === 1) {
       // Template selection step
-      return !!selectedTemplate;
+      return !!resolvedTemplate;
     }
     if (step === 2) {
       // About Me step - check all required fields including valid email/phone
@@ -643,12 +653,17 @@ const useWizardForm = (): UseWizardFormReturn => {
   };
 
   const renderTemplateHtml = (imageBase64?: string): string => {
+    const templateId = normalizeTemplateId(selectedTemplate);
+    if (!templateId) {
+      throw new Error("Unknown template selected. Please reselect a template.");
+    }
+
     let html = "";
     let imageHtml = "";
     if (imageBase64) {
       imageHtml = `<img src='data:image/jpeg;base64,${imageBase64}' style='width:40px;height:40px;border-radius:20px;object-fit:cover;background:#eee;display:block;margin:0 auto 5px;'/>`;
     }
-    if (selectedTemplate === "classic") {
+    if (templateId === "classic") {
       // ClassicTemplate: Dark sidebar with white text, light content area - matching preview exactly
       html = `
         <div style="width:210mm;min-height:297mm;margin:auto;font-family:sans-serif;background:#fff;display:flex;flex-direction:row;">
@@ -714,7 +729,7 @@ const useWizardForm = (): UseWizardFormReturn => {
           </div>
         </div>
       `;
-    } else if (selectedTemplate === "modern") {
+    } else if (templateId === "modern") {
       // ModernTemplate: Header with name/lastname, contact row, sections - matching preview exactly
       const locationStr = `${address.countryName}, ${address.cityName}, ${address.address1} ${address.address2}`.trim();
       // SVG icons for PDF (matching MaterialCommunityIcons from preview)
@@ -801,7 +816,7 @@ const useWizardForm = (): UseWizardFormReturn => {
           ` : ""}
         </div>
       `;
-    } else {
+    } else if (templateId === "minimal") {
       // MinimalTemplate: Green header, sidebar with skills/languages, content area - matching preview exactly
       const addressStr = `${address.address1}, ${address.cityName}, ${address.countryName}`;
       html = `
@@ -868,6 +883,8 @@ const useWizardForm = (): UseWizardFormReturn => {
           </div>
         </div>
       `;
+    } else {
+      throw new Error("Unknown template selected. Please reselect a template.");
     }
     return `<html><head><meta charset="UTF-8"><style>@page { size: A4; margin: 0; }</style></head><body style='margin:0;padding:0;font-family:sans-serif;'>${html}</body></html>`;
   };
@@ -878,6 +895,12 @@ const useWizardForm = (): UseWizardFormReturn => {
   const handlePreviewPdf = async (): Promise<void> => {
     setIsGeneratingPdf(true);
     try {
+      const templateId = normalizeTemplateId(selectedTemplate);
+      if (!templateId) {
+        Alert.alert("Template Required", "Please select a template before generating preview.");
+        return;
+      }
+
       let imageBase64 = aboutMe.imageBase64;
       if (!imageBase64 && aboutMe.image) {
         try {
@@ -886,6 +909,7 @@ const useWizardForm = (): UseWizardFormReturn => {
           console.log("Could not read image for preview");
         }
       }
+      console.log("Generating preview for template:", templateId);
       const html = renderTemplateHtml(imageBase64);
       setPdfPreviewHtml(html);
       setShowPdfPreview(true);
@@ -903,6 +927,11 @@ const useWizardForm = (): UseWizardFormReturn => {
     setIsGeneratingPdf(true);
     
     try {
+      const templateId = normalizeTemplateId(selectedTemplate);
+      if (!templateId) {
+        throw new Error("Unknown template selected. Please reselect a template.");
+      }
+
       let imageBase64 = aboutMe.imageBase64;
       if (!imageBase64 && aboutMe.image) {
         try {
@@ -910,8 +939,9 @@ const useWizardForm = (): UseWizardFormReturn => {
         } catch (e) {}
       }
       
+      console.log("Generating download for template:", templateId);
       const html = renderTemplateHtml(imageBase64);
-      const safeName = `${contact.name}_${contact.lastname}_cv`.replace(/\s+/g, "_");
+      const safeName = `${contact.name}_${contact.lastname}_${templateId}_cv`.replace(/\s+/g, "_");
       
       const file = await RNHTMLtoPDF.convert({
         html,
@@ -981,7 +1011,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     setErrors,
     errorMsg,
     setErrorMsg,
-    selectedTemplate,
+    selectedTemplate: resolvedTemplate,
     setSelectedTemplate,
     showPreview,
     setShowPreview,
