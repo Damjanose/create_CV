@@ -435,6 +435,7 @@ const useWizardForm = (): UseWizardFormReturn => {
   // Auto-save when form data changes (debounced)
   useEffect(() => {
     if (!isInitialized) return; // Don't save during initial load
+    if (step === 0) return; // Don't auto-save on welcome screen (would overwrite real draft with empty data)
     
     const saveTimeout = setTimeout(async () => {
       try {
@@ -452,8 +453,13 @@ const useWizardForm = (): UseWizardFormReturn => {
           savedAt: new Date().toISOString(),
         };
         
-        // Only save if there's meaningful data
-        if (contact.name || contact.email || experience.length > 0 || education.length > 0) {
+        // Only save if there's meaningful data (actual content, not just empty default entries)
+        const hasContent = !!(
+          contact.name || contact.email ||
+          experience.some(e => e.jobTitle || e.company) ||
+          education.some(e => e.school || e.degree)
+        );
+        if (hasContent) {
           await AsyncStorage.setItem(CV_DRAFT_KEY, JSON.stringify(draftData));
           setLastSaved(new Date());
           setHasDraft(true);
@@ -488,8 +494,6 @@ const useWizardForm = (): UseWizardFormReturn => {
         // Navigate to the saved step or template selection if data exists
         const targetStep = restoredTemplate ? Math.min(parsed.step || 1, 6) : 1;
         setStep(targetStep);
-        
-        Alert.alert("Draft Restored", "Your previous progress has been restored.");
       }
     } catch (error) {
       console.error("Error loading draft:", error);

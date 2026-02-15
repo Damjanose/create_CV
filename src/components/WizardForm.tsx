@@ -1289,14 +1289,23 @@ const WizardForm = () => {
       {step === steps.length - 1 ? (
         // Preview step - render without KeyboardAvoidingView and ScrollView to allow proper scrolling
         <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: styles.container.backgroundColor }}>
-          <View style={[styles.buttonRow, { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 }]}>
+          {renderStepContent()}
+          
+          {/* Back button at bottom like other steps */}
+          <View style={[styles.buttonRow, { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }]}>
             <TouchableOpacity
               style={[
                 styles.button,
                 styles.buttonSecondary,
               ]}
               onPress={handleBack}
+              activeOpacity={0.7}
             >
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={18}
+                color={isDark ? "#AAA" : "#555"}
+              />
               <Text
                 style={[
                   styles.buttonText,
@@ -1307,8 +1316,7 @@ const WizardForm = () => {
               </Text>
             </TouchableOpacity>
           </View>
-          {renderStepContent()}
-          
+
           {/* Stepper indicators for preview step - show all steps 1-7 */}
           <View style={[styles.stepperContainerBottom, { paddingBottom: 20 }]}>
             {steps.map((idx, displayIndex) => {

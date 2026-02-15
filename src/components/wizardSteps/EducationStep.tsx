@@ -11,6 +11,8 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -44,6 +46,7 @@ const EducationStep: React.FC<EducationStepProps> = ({
 }) => {
   const [showStartPicker, setShowStartPicker] = useState<number | null>(null);
   const [showEndPicker, setShowEndPicker] = useState<number | null>(null);
+  const [tempPickerDate, setTempPickerDate] = useState<Date>(new Date());
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     education.length > 0 ? 0 : null
   );
@@ -94,29 +97,40 @@ const EducationStep: React.FC<EducationStepProps> = ({
       if (event.type === "dismissed" || !selectedDate) {
         return;
       }
-    }
 
-    if (selectedDate) {
-      const dateString = formatDateString(selectedDate);
-      setEducation((prev) => {
-        const newEdu = [...prev];
-        if (type === "start") {
-          newEdu[index] = { ...newEdu[index], startDate: dateString };
-        } else {
-          newEdu[index] = { ...newEdu[index], endDate: dateString };
-        }
-        return newEdu;
-      });
-    }
-
-    // On iOS, dismiss after selection
-    if (Platform.OS === "ios") {
-      if (type === "start") {
-        setShowStartPicker(null);
-      } else {
-        setShowEndPicker(null);
+      if (selectedDate) {
+        const dateString = formatDateString(selectedDate);
+        setEducation((prev) => {
+          const newEdu = [...prev];
+          if (type === "start") {
+            newEdu[index] = { ...newEdu[index], startDate: dateString };
+          } else {
+            newEdu[index] = { ...newEdu[index], endDate: dateString };
+          }
+          return newEdu;
+        });
       }
     }
+
+    // On iOS, just buffer the date — don't dismiss or save
+    if (Platform.OS === "ios" && selectedDate) {
+      setTempPickerDate(selectedDate);
+    }
+  };
+
+  const handleIosDone = (index: number, type: "start" | "end") => {
+    const dateString = formatDateString(tempPickerDate);
+    setEducation((prev) => {
+      const newEdu = [...prev];
+      if (type === "start") {
+        newEdu[index] = { ...newEdu[index], startDate: dateString };
+      } else {
+        newEdu[index] = { ...newEdu[index], endDate: dateString };
+      }
+      return newEdu;
+    });
+    setShowStartPicker(null);
+    setShowEndPicker(null);
   };
 
   return (
@@ -282,7 +296,10 @@ const EducationStep: React.FC<EducationStepProps> = ({
                   borderColor: isDark ? "rgba(79, 142, 247, 0.3)" : "rgba(25, 118, 210, 0.2)",
                 },
               ]}
-              onPress={() => setShowStartPicker(idx)}
+              onPress={() => {
+                setTempPickerDate(formatDate(edu.startDate));
+                setShowStartPicker(idx);
+              }}
             >
               <MaterialCommunityIcons
                 name="calendar-start"
@@ -308,7 +325,12 @@ const EducationStep: React.FC<EducationStepProps> = ({
                   opacity: edu.ongoing ? 0.5 : 1,
                 },
               ]}
-              onPress={() => !edu.ongoing && setShowEndPicker(idx)}
+              onPress={() => {
+                if (!edu.ongoing) {
+                  setTempPickerDate(formatDate(edu.endDate));
+                  setShowEndPicker(idx);
+                }
+              }}
               disabled={edu.ongoing}
             >
               <MaterialCommunityIcons
@@ -424,67 +446,73 @@ const EducationStep: React.FC<EducationStepProps> = ({
       )}
 
       {Platform.OS === "ios" && showStartPicker !== null && education[showStartPicker] && (
-        <View style={formStyles.iosPickerContainer}>
-          <View style={formStyles.iosPickerHeader}>
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(null)}
-              style={formStyles.iosPickerButton}
-            >
-              <Text style={formStyles.iosPickerButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={formStyles.iosPickerTitle}>Select Start Date</Text>
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(null)}
-              style={formStyles.iosPickerButton}
-            >
-              <Text style={formStyles.iosPickerButtonText}>Done</Text>
-            </TouchableOpacity>
+        <Modal transparent animationType="slide" visible>
+          <TouchableWithoutFeedback onPress={() => setShowStartPicker(null)}>
+            <View style={formStyles.iosModalOverlay} />
+          </TouchableWithoutFeedback>
+          <View style={formStyles.iosPickerContainer}>
+            <View style={formStyles.iosPickerHeader}>
+              <TouchableOpacity
+                onPress={() => setShowStartPicker(null)}
+                style={formStyles.iosPickerButton}
+              >
+                <Text style={[formStyles.iosPickerButtonText, { color: "#E53935" }]}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={formStyles.iosPickerTitle}>Select Start Date</Text>
+              <TouchableOpacity
+                onPress={() => handleIosDone(showStartPicker, "start")}
+                style={formStyles.iosPickerButton}
+              >
+                <Text style={formStyles.iosPickerButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={tempPickerDate}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                if (date) setTempPickerDate(date);
+              }}
+              maximumDate={new Date()}
+              style={formStyles.iosPicker}
+            />
           </View>
-          <DateTimePicker
-            value={formatDate(education[showStartPicker].startDate)}
-            mode="date"
-            display="spinner"
-            onChange={(event, date) => {
-              if (showStartPicker !== null && date) {
-                handleDateChange(event, date, showStartPicker, "start");
-              }
-            }}
-            maximumDate={new Date()}
-            style={formStyles.iosPicker}
-          />
-        </View>
+        </Modal>
       )}
 
       {Platform.OS === "ios" && showEndPicker !== null && education[showEndPicker] && (
-        <View style={formStyles.iosPickerContainer}>
-          <View style={formStyles.iosPickerHeader}>
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(null)}
-              style={formStyles.iosPickerButton}
-            >
-              <Text style={formStyles.iosPickerButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={formStyles.iosPickerTitle}>Select End Date</Text>
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(null)}
-              style={formStyles.iosPickerButton}
-            >
-              <Text style={formStyles.iosPickerButtonText}>Done</Text>
-            </TouchableOpacity>
+        <Modal transparent animationType="slide" visible>
+          <TouchableWithoutFeedback onPress={() => setShowEndPicker(null)}>
+            <View style={formStyles.iosModalOverlay} />
+          </TouchableWithoutFeedback>
+          <View style={formStyles.iosPickerContainer}>
+            <View style={formStyles.iosPickerHeader}>
+              <TouchableOpacity
+                onPress={() => setShowEndPicker(null)}
+                style={formStyles.iosPickerButton}
+              >
+                <Text style={[formStyles.iosPickerButtonText, { color: "#E53935" }]}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={formStyles.iosPickerTitle}>Select End Date</Text>
+              <TouchableOpacity
+                onPress={() => handleIosDone(showEndPicker, "end")}
+                style={formStyles.iosPickerButton}
+              >
+                <Text style={formStyles.iosPickerButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={tempPickerDate}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                if (date) setTempPickerDate(date);
+              }}
+              maximumDate={new Date()}
+              style={formStyles.iosPicker}
+            />
           </View>
-          <DateTimePicker
-            value={formatDate(education[showEndPicker].endDate)}
-            mode="date"
-            display="spinner"
-            onChange={(event, date) => {
-              if (showEndPicker !== null && date) {
-                handleDateChange(event, date, showEndPicker, "end");
-              }
-            }}
-            maximumDate={new Date()}
-            style={formStyles.iosPicker}
-          />
-        </View>
+        </Modal>
       )}
 
       <TouchableOpacity
@@ -646,25 +674,29 @@ const formStyles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+  iosModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   iosPickerContainer: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    marginTop: 12,
-    padding: 8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 34,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: -3 },
+    shadowRadius: 10,
+    elevation: 10,
   },
   iosPickerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#D0D0D0",
   },
   iosPickerButton: {
     padding: 8,
