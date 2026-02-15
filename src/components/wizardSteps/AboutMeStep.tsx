@@ -40,6 +40,8 @@ interface AboutMeStepProps {
   isDark: boolean;
   launchImageLibrary: () => Promise<void>;
   launchCamera: () => Promise<void>;
+  fieldErrors?: Record<string, string>;
+  validateField?: (field: string) => void;
 }
 
 const AboutMeStep: React.FC<AboutMeStepProps> = ({
@@ -53,7 +55,17 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
   isDark,
   launchImageLibrary,
   launchCamera,
+  fieldErrors = {},
+  validateField,
 }) => {
+  const errorBorder = { borderColor: "#E53935", borderWidth: 1.5 };
+  const renderFieldError = (key: string) =>
+    fieldErrors[key] ? (
+      <Text style={{ color: "#E53935", fontSize: 12, marginTop: 2, marginBottom: 4, marginLeft: 32 }}>
+        {fieldErrors[key]}
+      </Text>
+    ) : null;
+
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
 
@@ -136,13 +148,15 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TextInput
-          style={[styles.input, formStyles.input]}
+          style={[styles.input, formStyles.input, fieldErrors.name && errorBorder]}
           placeholder="First Name"
           value={contact.name}
           onChangeText={(name) => setContact((prev: any) => ({ ...prev, name }))}
+          onBlur={() => validateField?.("name")}
           placeholderTextColor={isDark ? "#888" : "#999"}
         />
       </View>
+      {renderFieldError("name")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="account"
@@ -151,15 +165,17 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TextInput
-          style={[styles.input, formStyles.input]}
+          style={[styles.input, formStyles.input, fieldErrors.lastname && errorBorder]}
           placeholder="Last Name"
           value={contact.lastname}
           onChangeText={(lastname) =>
             setContact((prev: any) => ({ ...prev, lastname }))
           }
+          onBlur={() => validateField?.("lastname")}
           placeholderTextColor={isDark ? "#888" : "#999"}
         />
       </View>
+      {renderFieldError("lastname")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="phone"
@@ -168,14 +184,16 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TextInput
-          style={[styles.input, formStyles.input]}
+          style={[styles.input, formStyles.input, fieldErrors.phone && errorBorder]}
           placeholder="Phone"
           value={contact.phone}
           onChangeText={(phone) => setContact((prev: any) => ({ ...prev, phone }))}
           keyboardType="phone-pad"
+          onBlur={() => validateField?.("phone")}
           placeholderTextColor={isDark ? "#888" : "#999"}
         />
       </View>
+      {renderFieldError("phone")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="email"
@@ -184,15 +202,17 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TextInput
-          style={[styles.input, formStyles.input]}
+          style={[styles.input, formStyles.input, fieldErrors.email && errorBorder]}
           placeholder="Email"
           value={contact.email}
           onChangeText={(email) => setContact((prev: any) => ({ ...prev, email }))}
           keyboardType="email-address"
           autoCapitalize="none"
+          onBlur={() => validateField?.("email")}
           placeholderTextColor={isDark ? "#888" : "#999"}
         />
       </View>
+      {renderFieldError("email")}
     </View>
 
     <View style={formStyles.section}>
@@ -205,12 +225,13 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TouchableOpacity
-          style={[styles.input, formStyles.input, formStyles.pickerButton]}
+          style={[styles.input, formStyles.input, formStyles.pickerButton, fieldErrors.countryName && errorBorder]}
           onPress={() => setShowCountryPicker(true)}
         >
           <Text
             style={[
               formStyles.pickerText,
+              { color: isDark ? "#FFF" : "#222" },
               !address.countryName && {
                 color: isDark ? "#888" : "#999",
               },
@@ -225,6 +246,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           />
         </TouchableOpacity>
       </View>
+      {renderFieldError("countryName")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="city"
@@ -246,6 +268,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
             formStyles.input,
             formStyles.pickerButton,
             !address.countryName && formStyles.pickerButtonDisabled,
+            fieldErrors.cityName && errorBorder,
           ]}
           onPress={() => address.countryName && setShowCityPicker(true)}
           disabled={!address.countryName}
@@ -253,6 +276,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           <Text
             style={[
               formStyles.pickerText,
+              { color: isDark ? "#FFF" : "#222" },
               !address.cityName && {
                 color: isDark ? "#888" : "#999",
               },
@@ -278,6 +302,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           />
         </TouchableOpacity>
       </View>
+      {renderFieldError("cityName")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="home"
@@ -286,15 +311,17 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
           style={formStyles.inputIcon}
         />
         <TextInput
-          style={[styles.input, formStyles.input]}
+          style={[styles.input, formStyles.input, fieldErrors.address1 && errorBorder]}
           placeholder="Address Line 1"
           value={address.address1}
           onChangeText={(address1) =>
             setAddress((prev: any) => ({ ...prev, address1 }))
           }
+          onBlur={() => validateField?.("address1")}
           placeholderTextColor={isDark ? "#888" : "#999"}
         />
       </View>
+      {renderFieldError("address1")}
       <View style={formStyles.inputContainer}>
         <MaterialCommunityIcons
           name="home-variant"
@@ -317,7 +344,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
     <View style={formStyles.section}>
       <Text style={[styles.label, formStyles.sectionTitle]}>About Me</Text>
       <TextInput
-        style={[styles.input, formStyles.textArea]}
+        style={[styles.input, formStyles.textArea, fieldErrors.summary && errorBorder]}
         placeholder="Write something about yourself..."
         value={aboutMe.summary}
         onChangeText={(summary) =>
@@ -325,8 +352,10 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
         }
         multiline
         textAlignVertical="top"
+        onBlur={() => validateField?.("summary")}
         placeholderTextColor={isDark ? "#888" : "#999"}
       />
+      {renderFieldError("summary")}
     </View>
 
     {/* Country Picker Modal */}
@@ -343,7 +372,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
             { backgroundColor: isDark ? "#2A2D35" : "#FFF" },
           ]}
         >
-          <View style={formStyles.modalHeader}>
+          <View style={[formStyles.modalHeader, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
             <Text
               style={[
                 formStyles.modalTitle,
@@ -367,7 +396,8 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
               <TouchableOpacity
                 style={[
                   formStyles.modalItem,
-                  address.countryName === item && formStyles.modalItemSelected,
+                  { borderBottomColor: isDark ? "#444" : "#E0E0E0" },
+                  address.countryName === item && { backgroundColor: isDark ? "#1a2a4a" : "#E3F2FD" },
                   { backgroundColor: isDark ? "#23262F" : "#F5F5F5" },
                 ]}
                 onPress={() => handleCountrySelect(item)}
@@ -413,7 +443,7 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
             { backgroundColor: isDark ? "#2A2D35" : "#FFF" },
           ]}
         >
-          <View style={formStyles.modalHeader}>
+          <View style={[formStyles.modalHeader, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
             <Text
               style={[
                 formStyles.modalTitle,
@@ -438,7 +468,8 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
                 <TouchableOpacity
                   style={[
                     formStyles.modalItem,
-                    address.cityName === item && formStyles.modalItemSelected,
+                    { borderBottomColor: isDark ? "#444" : "#E0E0E0" },
+                    address.cityName === item && { backgroundColor: isDark ? "#1a2a4a" : "#E3F2FD" },
                     { backgroundColor: isDark ? "#23262F" : "#F5F5F5" },
                   ]}
                   onPress={() => handleCitySelect(item)}

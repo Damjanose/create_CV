@@ -110,6 +110,8 @@ const WizardForm = () => {
     hobbies,
     setHobbies,
     errorMsg,
+    fieldErrors,
+    validateField,
     selectedTemplate,
     setSelectedTemplate,
     canGoNext,
@@ -1229,6 +1231,8 @@ const WizardForm = () => {
             isDark={isDark}
             launchImageLibrary={handleLaunchImageLibrary}
             launchCamera={handleLaunchCamera}
+            fieldErrors={fieldErrors}
+            validateField={validateField}
           />
         );
       case 3:
@@ -1429,15 +1433,13 @@ const WizardForm = () => {
                   <TouchableOpacity
                     style={[
                       styles.button,
-                      canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                      styles.buttonPrimary,
                     ]}
                     onPress={handleNext}
-                    disabled={!canGoNext()}
                   >
                     <Text
                       style={[
                         styles.buttonText,
-                        !canGoNext() && styles.textDisabled,
                       ]}
                     >
                       Next
@@ -1447,15 +1449,13 @@ const WizardForm = () => {
                   <TouchableOpacity
                     style={[
                       styles.button,
-                      canGoNext() ? styles.buttonPrimary : styles.buttonDisabled,
+                      styles.buttonPrimary,
                     ]}
                     onPress={handleNext}
-                    disabled={!canGoNext()}
                   >
                     <Text
                       style={[
                         styles.buttonText,
-                        !canGoNext() && styles.textDisabled,
                       ]}
                     >
                       Preview

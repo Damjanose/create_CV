@@ -315,6 +315,8 @@ type UseWizardFormReturn = {
   >;
   errorMsg: string;
   setErrorMsg: React.Dispatch<React.SetStateAction<string>>;
+  fieldErrors: Record<string, string>;
+  validateField: (field: string) => void;
   selectedTemplate: string;
   setSelectedTemplate: React.Dispatch<React.SetStateAction<string>>;
   showPreview: boolean;
@@ -381,6 +383,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     AboutMeErrors | ExperienceErrors | EducationErrors
   >({});
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
   
@@ -502,9 +505,81 @@ const useWizardForm = (): UseWizardFormReturn => {
     return phoneRegex.test(phone.replace(/\s/g, ""));
   };
 
+  // Validate a single field on blur
+  const validateField = (field: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      switch (field) {
+        case "name":
+          if (!contact.name || contact.name.trim() === "") {
+            next.name = "First name is required";
+          } else {
+            delete next.name;
+          }
+          break;
+        case "lastname":
+          if (!contact.lastname || contact.lastname.trim() === "") {
+            next.lastname = "Last name is required";
+          } else {
+            delete next.lastname;
+          }
+          break;
+        case "phone":
+          if (!contact.phone || contact.phone.trim() === "") {
+            next.phone = "Phone number is required";
+          } else if (!validatePhone(contact.phone)) {
+            next.phone = "Enter a valid phone number (e.g. +1234567890)";
+          } else {
+            delete next.phone;
+          }
+          break;
+        case "email":
+          if (!contact.email || contact.email.trim() === "") {
+            next.email = "Email is required";
+          } else if (!validateEmail(contact.email)) {
+            next.email = "Enter a valid email address";
+          } else {
+            delete next.email;
+          }
+          break;
+        case "countryName":
+          if (!address.countryName) {
+            next.countryName = "Please select a country";
+          } else {
+            delete next.countryName;
+          }
+          break;
+        case "cityName":
+          if (!address.cityName) {
+            next.cityName = "Please select a city";
+          } else {
+            delete next.cityName;
+          }
+          break;
+        case "address1":
+          if (!address.address1 || address.address1.trim() === "") {
+            next.address1 = "Address is required";
+          } else {
+            delete next.address1;
+          }
+          break;
+        case "summary":
+          if (!aboutMe.summary || aboutMe.summary.trim() === "") {
+            next.summary = "Please write something about yourself";
+          } else {
+            delete next.summary;
+          }
+          break;
+      }
+      return next;
+    });
+  };
+
   const validateStep = (): boolean => {
     setErrorMsg("");
+    setFieldErrors({});
     let valid = true;
+    const newFieldErrors: Record<string, string> = {};
     if (step === 0) {
       // Welcome step - always allow to proceed
       return true;
@@ -518,52 +593,50 @@ const useWizardForm = (): UseWizardFormReturn => {
       return true;
     }
     if (step === 2) {
-      // About Me step - validate all fields
-      const missingFields: string[] = [];
-      
-      if (!aboutMe.summary || aboutMe.summary.trim() === "") {
-        missingFields.push("Summary");
-        valid = false;
-      }
+      // About Me step - validate all fields with inline errors
       if (!contact.name || contact.name.trim() === "") {
-        missingFields.push("First Name");
+        newFieldErrors.name = "First name is required";
         valid = false;
       }
       if (!contact.lastname || contact.lastname.trim() === "") {
-        missingFields.push("Last Name");
+        newFieldErrors.lastname = "Last name is required";
         valid = false;
       }
       if (!contact.phone || contact.phone.trim() === "") {
-        missingFields.push("Phone");
+        newFieldErrors.phone = "Phone number is required";
         valid = false;
       } else if (!validatePhone(contact.phone)) {
-        setErrorMsg("Please enter a valid phone number.");
-        return false;
+        newFieldErrors.phone = "Enter a valid phone number (e.g. +1234567890)";
+        valid = false;
       }
       if (!contact.email || contact.email.trim() === "") {
-        missingFields.push("Email");
+        newFieldErrors.email = "Email is required";
         valid = false;
       } else if (!validateEmail(contact.email)) {
-        setErrorMsg("Please enter a valid email address.");
-        return false;
+        newFieldErrors.email = "Enter a valid email address";
+        valid = false;
       }
       if (!address.countryName) {
-        missingFields.push("Country");
+        newFieldErrors.countryName = "Please select a country";
         valid = false;
       }
       if (!address.cityName) {
-        missingFields.push("City");
+        newFieldErrors.cityName = "Please select a city";
         valid = false;
       }
       if (!address.address1 || address.address1.trim() === "") {
-        missingFields.push("Address");
+        newFieldErrors.address1 = "Address is required";
+        valid = false;
+      }
+      if (!aboutMe.summary || aboutMe.summary.trim() === "") {
+        newFieldErrors.summary = "Please write something about yourself";
         valid = false;
       }
       
       if (!valid) {
-        if (missingFields.length > 0) {
-          setErrorMsg(`Please fill: ${missingFields.join(", ")}`);
-        }
+        setFieldErrors(newFieldErrors);
+        const count = Object.keys(newFieldErrors).length;
+        setErrorMsg(`Please fix ${count} error${count > 1 ? "s" : ""} below.`);
       }
       return valid;
     }
@@ -1011,6 +1084,8 @@ const useWizardForm = (): UseWizardFormReturn => {
     setErrors,
     errorMsg,
     setErrorMsg,
+    fieldErrors,
+    validateField,
     selectedTemplate: resolvedTemplate,
     setSelectedTemplate,
     showPreview,
