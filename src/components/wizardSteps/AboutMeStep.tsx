@@ -132,41 +132,55 @@ const AboutMeStep: React.FC<AboutMeStepProps> = ({
   return (
   <View>
     <Text style={styles.title}>About Me, Contact & Address</Text>
-    <View style={{ alignItems: "center", marginVertical: 16 }}>
-      <Image
-        source={
-          aboutMe.image
-            ? { uri: aboutMe.image }
-            : require("../../assets/images/user.png")
-        }
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: "#eee",
-          marginBottom: 8,
-        }}
-      />
-      <View style={formStyles.photoButtonsContainer}>
+    <View style={{ alignItems: "center", marginBottom: 16 }}>
+      <View style={{ position: "relative" }}>
+        <Image
+          source={
+            aboutMe.image
+              ? { uri: aboutMe.image }
+              : require("../../assets/images/user.png")
+          }
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: isDark ? "#333" : "#eee",
+            borderWidth: 3,
+            borderColor: isDark ? "#4F8EF7" : "#1976D2",
+          }}
+        />
+        <View style={{
+          position: "absolute",
+          bottom: -2,
+          right: -2,
+          backgroundColor: isDark ? "#4F8EF7" : "#1976D2",
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 2.5,
+          borderColor: isDark ? "#23262F" : "#FFF",
+        }}>
+          <MaterialCommunityIcons name="pencil" size={13} color="#FFF" />
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
         <TouchableOpacity
-          style={[
-            formStyles.photoButton,
-            { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
-          ]}
+          style={[formStyles.photoButton, { backgroundColor: isDark ? "rgba(79,142,247,0.15)" : "rgba(25,118,210,0.08)" }]}
           onPress={launchImageLibrary}
+          activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="upload" size={18} color="#fff" />
-          <Text style={formStyles.photoButtonText}>Upload Photo</Text>
+          <MaterialCommunityIcons name="image-outline" size={16} color={isDark ? "#4F8EF7" : "#1976D2"} />
+          <Text style={[formStyles.photoButtonText, { color: isDark ? "#4F8EF7" : "#1976D2" }]}>Gallery</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            formStyles.photoButton,
-            { backgroundColor: isDark ? "#4F8EF7" : "#1976D2" },
-          ]}
+          style={[formStyles.photoButton, { backgroundColor: isDark ? "rgba(79,142,247,0.15)" : "rgba(25,118,210,0.08)" }]}
           onPress={launchCamera}
+          activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="camera" size={18} color="#fff" />
-          <Text style={formStyles.photoButtonText}>Take Photo</Text>
+          <MaterialCommunityIcons name="camera-outline" size={16} color={isDark ? "#4F8EF7" : "#1976D2"} />
+          <Text style={[formStyles.photoButtonText, { color: isDark ? "#4F8EF7" : "#1976D2" }]}>Camera</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -655,19 +669,17 @@ const formStyles = StyleSheet.create({
     marginTop: 12,
   },
   photoButton: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    gap: 5,
   },
   photoButtonText: {
-    color: "#fff",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 12,
   },
   pickerButton: {
     flexDirection: "row",

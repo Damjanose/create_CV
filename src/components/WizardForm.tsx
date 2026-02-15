@@ -1346,21 +1346,25 @@ const WizardForm = () => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Animated.View style={[styles.card, { opacity: fadeAnim }]}>            
+        <View style={styles.container}>
+          <Animated.View style={[styles.card, { opacity: fadeAnim, flex: 1 }]}>            
             {errorMsg ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
             ) : null}
 
-            <View style={styles.content}>{renderStepContent()}</View>
+            <ScrollView
+              style={{ flex: 1, width: "100%" }}
+              contentContainerStyle={{ flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.content}>{renderStepContent()}</View>
+            </ScrollView>
 
             {step > 0 && (
-              <View style={styles.buttonRow}>
+              <View style={[styles.buttonRow, { marginTop: 16 }]}>
                 <TouchableOpacity
                   style={[
                     styles.button,
@@ -1369,7 +1373,13 @@ const WizardForm = () => {
                   ]}
                   onPress={handleBack}
                   disabled={step === 0}
+                  activeOpacity={0.7}
                 >
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={18}
+                    color={isDark ? "#AAA" : "#555"}
+                  />
                   <Text
                     style={[
                       styles.buttonText,
@@ -1390,6 +1400,7 @@ const WizardForm = () => {
                     ]}
                     onPress={handleNext}
                     disabled={!selectedTemplate}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
@@ -1399,6 +1410,11 @@ const WizardForm = () => {
                     >
                       Next
                     </Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={18}
+                      color={!selectedTemplate ? (isDark ? "#666" : "#AAA") : "#FFF"}
+                    />
                   </TouchableOpacity>
                 ) : step < steps.length - 2 ? (
                   <TouchableOpacity
@@ -1407,14 +1423,14 @@ const WizardForm = () => {
                       styles.buttonPrimary,
                     ]}
                     onPress={handleNext}
+                    activeOpacity={0.7}
                   >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                      ]}
-                    >
-                      Next
-                    </Text>
+                    <Text style={styles.buttonText}>Next</Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={18}
+                      color="#FFF"
+                    />
                   </TouchableOpacity>
                 ) : step === steps.length - 2 ? (
                   <TouchableOpacity
@@ -1423,14 +1439,14 @@ const WizardForm = () => {
                       styles.buttonPrimary,
                     ]}
                     onPress={handleNext}
+                    activeOpacity={0.7}
                   >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                      ]}
-                    >
-                      Preview
-                    </Text>
+                    <MaterialCommunityIcons
+                      name="eye-outline"
+                      size={18}
+                      color="#FFF"
+                    />
+                    <Text style={styles.buttonText}>Preview</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -1470,7 +1486,7 @@ const WizardForm = () => {
               })}
             </View>
           )}
-        </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       )}
 
