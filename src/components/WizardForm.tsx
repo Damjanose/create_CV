@@ -1592,7 +1592,7 @@ const WizardForm = () => {
         </View>
       </Modal>
 
-      {/* Draft Restore Prompt Modal */}
+      {/* Draft Restore Prompt Modal - commented out for now
       <Modal
         visible={showDraftPrompt}
         transparent={true}
@@ -1636,6 +1636,7 @@ const WizardForm = () => {
           </View>
         </View>
       </Modal>
+      */}
     </>
   );
 };
