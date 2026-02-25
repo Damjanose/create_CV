@@ -66,6 +66,7 @@ import RNFS from "react-native-fs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CV_DRAFT_KEY = "CV_DRAFT_DATA";
+const CV_GENERATED_PREFIX = "CV_GENERATED_";
 const AUTO_SAVE_DEBOUNCE = 1000; // 1 second debounce
 const VALID_TEMPLATE_IDS = ["classic", "modern", "minimal"] as const;
 
@@ -349,6 +350,7 @@ type UseWizardFormReturn = {
   handlePreviewPdf: () => Promise<void>;
   handleConfirmDownload: () => Promise<void>;
   clearDraft: () => Promise<void>;
+  resetForm: () => Promise<void>;
   hasDraft: boolean;
   loadDraft: () => Promise<void>;
   lastSaved: Date | null;
@@ -510,6 +512,28 @@ const useWizardForm = (): UseWizardFormReturn => {
     } catch (error) {
       console.error("Error clearing draft:", error);
     }
+  };
+
+  // Reset all form state to defaults AND clear persisted draft
+  const resetForm = async (): Promise<void> => {
+    await clearDraft();
+    setAboutMe({ summary: "", image: "", imageBase64: "" });
+    setContact({ name: "", lastname: "", phone: "", email: "" });
+    setAddress({ countryName: "", cityName: "", address1: "", address2: "" });
+    setLanguages([]);
+    setExperience([
+      { jobTitle: "", company: "", startDate: "", endDate: "", description: "", ongoing: false },
+    ]);
+    setEducation([
+      { school: "", degree: "", startDate: "", endDate: "", description: "", ongoing: false },
+    ]);
+    setSkills([""]);
+    setHobbies([""]);
+    setSelectedTemplate("");
+    setErrors({});
+    setErrorMsg("");
+    setFieldErrors({});
+    setStep(0);
   };
 
   // ============ END AUTO-SAVE ============
@@ -999,6 +1023,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     } else {
       throw new Error("Unknown template selected. Please reselect a template.");
     }
+
     return `<html><head><meta charset="UTF-8"><style>@page { size: A4; margin: 0; }</style></head><body style='margin:0;padding:0;font-family:sans-serif;'>${html}</body></html>`;
   };
 
@@ -1065,11 +1090,101 @@ const useWizardForm = (): UseWizardFormReturn => {
       
       let destPath = file.filePath;
       if (!destPath) throw new Error("PDF file path not found");
-      
+
+      // Append embedded CV data to the PDF file for reliable re-upload parsing.
+      // Data appended after %%EOF is ignored by PDF viewers but survives as raw
+      // bytes, so the upload handler can find and decode it.
+      try {
+        const embeddedPayload = {
+          contact,
+          address,
+          aboutMe: { summary: aboutMe.summary },
+          languages,
+          experience,
+          education,
+          skills: skills.filter(s => s && s.trim() !== ""),
+          hobbies: hobbies.filter(h => h && h.trim() !== ""),
+          selectedTemplate: templateId,
+        };
+        const jsonStr = JSON.stringify(embeddedPayload);
+        console.log("Embedding CV data, JSON length:", jsonStr.length);
+
+        // Manual base64 encode. First encode JSON as UTF-8 byte array to
+        // handle any non-ASCII characters (accented names, etc.), then
+        // base64-encode those bytes.
+        const utf8Bytes: number[] = [];
+        for (let ci = 0; ci < jsonStr.length; ci++) {
+          let code = jsonStr.charCodeAt(ci);
+          if (code < 0x80) {
+            utf8Bytes.push(code);
+          } else if (code < 0x800) {
+            utf8Bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+          } else if (code >= 0xd800 && code < 0xdc00 && ci + 1 < jsonStr.length) {
+            // surrogate pair
+            const lo = jsonStr.charCodeAt(++ci);
+            code = 0x10000 + ((code - 0xd800) << 10) + (lo - 0xdc00);
+            utf8Bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+          } else {
+            utf8Bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+          }
+        }
+
+        const b64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let b64 = "";
+        const len = utf8Bytes.length;
+        for (let i = 0; i < len; i += 3) {
+          const a = utf8Bytes[i];
+          const b = i + 1 < len ? utf8Bytes[i + 1] : 0;
+          const c = i + 2 < len ? utf8Bytes[i + 2] : 0;
+          const triplet = (a << 16) | (b << 8) | c;
+          b64 += b64Chars[(triplet >> 18) & 0x3f];
+          b64 += b64Chars[(triplet >> 12) & 0x3f];
+          b64 += i + 1 < len ? b64Chars[(triplet >> 6) & 0x3f] : "=";
+          b64 += i + 2 < len ? b64Chars[triplet & 0x3f] : "=";
+        }
+        const marker = `\n__CVAPP_DATA_START__${b64}__CVAPP_DATA_END__\n`;
+        await RNFS.appendFile(destPath, marker, "utf8");
+        console.log("Embedded CV data appended to PDF,", b64.length, "b64 chars, marker total:", marker.length);
+
+        // Verify: read back the last bytes to confirm the marker was written
+        try {
+          const verifyContent = await RNFS.readFile(destPath, "utf8");
+          const hasMarker = verifyContent.includes("__CVAPP_DATA_START__");
+          console.log("Append verification:", hasMarker ? "MARKER FOUND" : "MARKER NOT FOUND - append may have failed");
+        } catch (verifyErr) {
+          console.warn("Append verification read failed:", verifyErr);
+        }
+      } catch (appendErr) {
+        console.warn("Failed to append embedded data to PDF (non-fatal):", appendErr);
+      }
+
       if (Platform.OS === "android") {
         const downloadDir = `${RNFS.DownloadDirectoryPath}/${safeName}.pdf`;
         await RNFS.moveFile(destPath, downloadDir);
         destPath = downloadDir;
+      }
+
+      // Save form data to AsyncStorage keyed by filename so re-upload on
+      // the same device can recover it without parsing the PDF binary.
+      try {
+        const savedPayload = {
+          contact,
+          address,
+          aboutMe: { summary: aboutMe.summary },
+          languages,
+          experience,
+          education,
+          skills: skills.filter(s => s && s.trim() !== ""),
+          hobbies: hobbies.filter(h => h && h.trim() !== ""),
+          selectedTemplate: templateId,
+        };
+        await AsyncStorage.setItem(
+          `${CV_GENERATED_PREFIX}${safeName}`,
+          JSON.stringify(savedPayload),
+        );
+        console.log("Saved CV data to AsyncStorage under key:", `${CV_GENERATED_PREFIX}${safeName}`);
+      } catch (storeErr) {
+        console.warn("Failed to save CV data to AsyncStorage (non-fatal):", storeErr);
       }
       
       // Clear draft after successful download
@@ -1146,6 +1261,7 @@ const useWizardForm = (): UseWizardFormReturn => {
     handlePreviewPdf,
     handleConfirmDownload,
     clearDraft,
+    resetForm,
     hasDraft,
     loadDraft,
     lastSaved,

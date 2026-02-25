@@ -19,11 +19,13 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { WebView } from "react-native-webview";
 
 import RNFS from "react-native-fs";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import DocumentPicker from "react-native-document-picker";
 import { FloatingAction } from "react-native-floating-action";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 
+import countriesData from "../constants/countriesAndCities";
 import useWizardForm from "./hooks/useWizardForm";
 import WelcomeStep from "./wizardSteps/WelcomeStep";
 import AboutMeStep from "./wizardSteps/AboutMeStep";
@@ -129,6 +131,7 @@ const WizardForm = () => {
     hasDraft,
     loadDraft,
     clearDraft,
+    resetForm,
     lastSaved,
   } = useWizardForm();
 
@@ -298,6 +301,7 @@ const WizardForm = () => {
       if (accumulatedBits >= 8) {
         accumulatedBits -= 8;
         output += String.fromCharCode((buffer >> accumulatedBits) & 0xff);
+        buffer &= (1 << accumulatedBits) - 1; // Keep only remaining bits to prevent overflow
       }
     }
 
@@ -336,6 +340,7 @@ const WizardForm = () => {
       education: [],
       skills: [],
       languages: [],
+      hobbies: [],
     };
 
     // Preserve line structure to improve section/key parsing reliability
@@ -705,6 +710,29 @@ const WizardForm = () => {
       console.log("Parsed languages:", parsedData.languages);
     }
 
+    // ========== EXTRACT HOBBIES ==========
+    const hobbiesSection = normalizedText.match(
+      /(?:hobbies|interests|personal interests)[:\s]*\n?([^]*?)(?=\n(?:experience|education|skills|languages|work|about|summary|profile|contact|$))/i
+    );
+
+    if (hobbiesSection && hobbiesSection[1]) {
+      const hobbiesText = hobbiesSection[1];
+      console.log("Hobbies section found:", hobbiesText.substring(0, 200));
+
+      parsedData.hobbies = hobbiesText
+        .replace(/[•\-\*]/g, ',')
+        .split(/[,\n]/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => {
+          return s.length >= 2 &&
+                 s.length <= 50 &&
+                 !/^(hobbies|interests|personal)$/i.test(s) &&
+                 /[A-Za-z]/.test(s);
+        });
+
+      console.log("Parsed hobbies:", parsedData.hobbies);
+    }
+
     // Fallback: if summary missing, use first meaningful paragraph
     if (!parsedData.aboutMe.summary) {
       const fallbackSummary = lines
@@ -742,17 +770,42 @@ const WizardForm = () => {
     parsedData.languages = parsedData.languages.filter((lang: any, index: number, arr: any[]) => {
       return arr.findIndex(item => item.name.toLowerCase() === lang.name.toLowerCase()) === index;
     });
+    parsedData.hobbies = Array.from(new Set(parsedData.hobbies.map((h: string) => h.trim()).filter(Boolean)));
+
+    // ========== FUZZY MATCH COUNTRY & CITY ==========
+    if (parsedData.address.countryName) {
+      const extractedCountry = parsedData.address.countryName.toLowerCase().trim();
+      const countryMatch = countriesData.data?.find(
+        (c: any) => c.name.toLowerCase() === extractedCountry
+      );
+      if (countryMatch) {
+        parsedData.address.countryName = countryMatch.name;
+        // Also fuzzy-match city against the matched country's states
+        if (parsedData.address.cityName) {
+          const extractedCity = parsedData.address.cityName.toLowerCase().trim();
+          const cityMatch = countryMatch.states?.find(
+            (s: any) => s.name.toLowerCase() === extractedCity
+          );
+          if (cityMatch) {
+            parsedData.address.cityName = cityMatch.name;
+          } else {
+            // City not found in states — clear it so user picks manually
+            console.log("City not found in country states:", parsedData.address.cityName);
+            parsedData.address.cityName = "";
+          }
+        }
+      } else {
+        // Country not found — clear both so user picks manually
+        console.log("Country not found in data:", parsedData.address.countryName);
+        parsedData.address.countryName = "";
+        parsedData.address.cityName = "";
+      }
+    }
 
     return parsedData;
   };
 
   const handleUploadResume = async () => {
-    Alert.alert(
-      "Coming Soon",
-      "Upload CV is temporarily disabled while we improve parsing quality."
-    );
-    return;
-
     try {
       // Request storage permission for Android
       if (Platform.OS === "android") {
@@ -896,18 +949,49 @@ const WizardForm = () => {
         const readUri = fileUri.replace(/^file:\/\//, "");
         console.log("Reading PDF file from:", readUri);
         const base64Content = await RNFS.readFile(readUri, "base64");
-        console.log("PDF file read successfully, size:", base64Content.length);
-        
+        console.log("PDF file read successfully, base64 size:", base64Content.length);
+
+        // === CHECK AsyncStorage FIRST (most reliable for own CVs) ===
+        // When the app downloads a PDF it saves the form data keyed by filename.
+        // If the user re-uploads the same file, we can recover all fields instantly.
+        let parsedData: any = null;
+        const fileName = file.name || "";
+        const fileBaseName = fileName.replace(/\.pdf$/i, "");
+        if (fileBaseName) {
+          try {
+            const storedJson = await AsyncStorage.getItem(`CV_GENERATED_${fileBaseName}`);
+            if (storedJson) {
+              const stored = JSON.parse(storedJson);
+              console.log("Found saved CV data in AsyncStorage for:", fileBaseName);
+              parsedData = {
+                contact: stored.contact || { name: "", lastname: "", phone: "", email: "" },
+                address: stored.address || { countryName: "", cityName: "", address1: "", address2: "" },
+                aboutMe: stored.aboutMe || { summary: "" },
+                experience: stored.experience || [],
+                education: stored.education || [],
+                skills: stored.skills || [],
+                languages: stored.languages || [],
+                hobbies: stored.hobbies || [],
+              };
+              if (stored.selectedTemplate) {
+                setSelectedTemplate(stored.selectedTemplate);
+              }
+            } else {
+              console.log("No saved data in AsyncStorage for:", fileBaseName);
+            }
+          } catch (storeErr) {
+            console.warn("AsyncStorage lookup failed (non-fatal):", storeErr);
+          }
+        }
+
+        // Convert base64 to binary string for embedded data detection and text extraction
+        const binaryString = decodeBase64ToBinary(base64Content);
+        console.log("PDF binary size:", binaryString.length);
+
         // Extract text from PDF
         // For text-based PDFs, we can try to extract text from the content
         let extractedText = "";
         try {
-          // Convert base64 to binary string and try to extract text
-          // Uses fallback decoder for environments where atob is unavailable
-          const binaryString = decodeBase64ToBinary(base64Content);
-          
-          console.log("PDF binary size:", binaryString.length);
-          
           // Method 1: Extract text from BT/ET blocks (PDF text objects)
           // PDF text is often in format: BT ... (text) Tj ... ET
           const textBlocks: string[] = [];
@@ -957,7 +1041,7 @@ const WizardForm = () => {
           }
           
           if (textBlocks.length > 0) {
-            extractedText = textBlocks.join(' ');
+            extractedText = textBlocks.join('\n');
             console.log("Method 1 (BT/ET blocks) extracted:", textBlocks.length, "blocks");
           }
           
@@ -978,7 +1062,7 @@ const WizardForm = () => {
                 });
               
               if (extractedParts.length > 0) {
-                const methodTwoText = extractedParts.join(' ');
+                const methodTwoText = extractedParts.join('\n');
                 if (methodTwoText.length > extractedText.length) {
                   extractedText = methodTwoText;
                   console.log("Method 2 (parentheses) extracted:", extractedParts.length, "parts");
@@ -1074,6 +1158,11 @@ const WizardForm = () => {
             .replace(/\n{3,}/g, "\n\n")
             .trim();
 
+          // Remove any embedded data markers from extracted text so they don't pollute the parser
+          extractedText = extractedText
+            .replace(/__CVAPP_DATA_START__[\s\S]*?__CVAPP_DATA_END__/g, "")
+            .trim();
+
           const qualityLines = extractedText
             .split("\n")
             .map(line => line.trim())
@@ -1101,55 +1190,157 @@ const WizardForm = () => {
           // Continue with empty text - parser will still try to extract what it can
         }
         
-        // Parse extracted text and extract CV data
-        const parsedData = parseCVText(extractedText);
+        // ========== TRY EMBEDDED DATA IN PDF BINARY ==========
+        // The marker is appended as plain text after %%EOF when the PDF is
+        // generated by this app.
+        if (!parsedData) {
+        try {
+          const markerStart = "__CVAPP_DATA_START__";
+          const markerEnd = "__CVAPP_DATA_END__";
           
-          console.log("Parsed data:", parsedData);
+          // Search in the decoded binary and extracted text
+          const searchTargets = [
+            { label: "binaryString", data: binaryString },
+            { label: "extractedText", data: extractedText },
+          ];
+          for (const { label, data } of searchTargets) {
+            if (!data || data.length === 0) {
+              console.log(`Embedded search: skipping empty target "${label}"`);
+              continue;
+            }
+            const startIdx = data.indexOf(markerStart);
+            console.log(`Embedded search: "${label}" (len=${data.length}) indexOf markerStart = ${startIdx}`);
+            if (startIdx === -1) continue;
+            const endIdx = data.indexOf(markerEnd, startIdx);
+            console.log(`Embedded search: "${label}" indexOf markerEnd = ${endIdx}`);
+            if (endIdx === -1 || endIdx <= startIdx) continue;
+
+            const b64Data = data.substring(startIdx + markerStart.length, endIdx).trim();
+            if (!b64Data || b64Data.length < 10) {
+              console.warn(`Embedded search: b64Data too short (${b64Data?.length})`);
+              continue;
+            }
+
+            console.log("Found embedded CV data in", label, "- b64 length:", b64Data.length,
+              "preview:", b64Data.substring(0, 40));
+            try {
+              const rawBytes = decodeBase64ToBinary(b64Data);
+              // The embedded data was UTF-8 encoded before base64, so
+              // decode the raw bytes back to a JS string.
+              let jsonStr = "";
+              for (let bi = 0; bi < rawBytes.length; ) {
+                const byte = rawBytes.charCodeAt(bi);
+                if (byte < 0x80) {
+                  jsonStr += String.fromCharCode(byte);
+                  bi++;
+                } else if ((byte & 0xe0) === 0xc0 && bi + 1 < rawBytes.length) {
+                  jsonStr += String.fromCharCode(((byte & 0x1f) << 6) | (rawBytes.charCodeAt(bi + 1) & 0x3f));
+                  bi += 2;
+                } else if ((byte & 0xf0) === 0xe0 && bi + 2 < rawBytes.length) {
+                  jsonStr += String.fromCharCode(((byte & 0x0f) << 12) | ((rawBytes.charCodeAt(bi + 1) & 0x3f) << 6) | (rawBytes.charCodeAt(bi + 2) & 0x3f));
+                  bi += 3;
+                } else if ((byte & 0xf8) === 0xf0 && bi + 3 < rawBytes.length) {
+                  const cp = ((byte & 0x07) << 18) | ((rawBytes.charCodeAt(bi + 1) & 0x3f) << 12) | ((rawBytes.charCodeAt(bi + 2) & 0x3f) << 6) | (rawBytes.charCodeAt(bi + 3) & 0x3f);
+                  // Encode as JS surrogate pair
+                  jsonStr += String.fromCharCode(0xd800 + ((cp - 0x10000) >> 10), 0xdc00 + ((cp - 0x10000) & 0x3ff));
+                  bi += 4;
+                } else {
+                  jsonStr += String.fromCharCode(byte);
+                  bi++;
+                }
+              }
+              console.log("Decoded JSON length:", jsonStr.length, "preview:", jsonStr.substring(0, 120));
+              const embedded = JSON.parse(jsonStr);
+              console.log("Successfully parsed embedded CV data, keys:", Object.keys(embedded));
+              
+              // Build parsedData from embedded structured data
+              parsedData = {
+                contact: embedded.contact || { name: "", lastname: "", phone: "", email: "" },
+                address: embedded.address || { countryName: "", cityName: "", address1: "", address2: "" },
+                aboutMe: embedded.aboutMe || { summary: "" },
+                experience: embedded.experience || [],
+                education: embedded.education || [],
+                skills: embedded.skills || [],
+                languages: embedded.languages || [],
+                hobbies: embedded.hobbies || [],
+              };
+              // Also restore the template choice if available
+              if (embedded.selectedTemplate) {
+                setSelectedTemplate(embedded.selectedTemplate);
+              }
+              console.log("Using embedded data — all fields available");
+              break;
+            } catch (decodeErr) {
+              console.warn("Failed to decode embedded data from", label, ":", decodeErr);
+            }
+          }
+        } catch (markerErr) {
+          console.warn("Error searching for embedded data marker:", markerErr);
+        }
+        } // end if (!parsedData) for embedded search
+
+        // Fallback to text-based parsing if no embedded data found
+        const isEmbedded = !!parsedData;
+        if (!parsedData) {
+          console.log("No embedded data found, using text-based parsing");
+          parsedData = parseCVText(extractedText);
+        }
           
-          // Auto-fill form fields with parsed data (prefer existing values if user already typed)
+          console.log("Parsed data (embedded=" + isEmbedded + "):", JSON.stringify(parsedData).substring(0, 500));
+          
+          // Auto-fill form fields with parsed data.
+          // When data comes from embedded JSON we trust it fully and overwrite
+          // empty defaults.  When it comes from the text parser we are more
+          // conservative (keep existing user input).
           setContact((prev) => ({
             ...prev,
-            name: prev.name || parsedData.contact.name || prev.name,
-            lastname: prev.lastname || parsedData.contact.lastname || prev.lastname,
-            email: prev.email || parsedData.contact.email || prev.email,
-            phone: prev.phone || parsedData.contact.phone || prev.phone,
+            name: (isEmbedded ? parsedData.contact.name : prev.name || parsedData.contact.name) || "",
+            lastname: (isEmbedded ? parsedData.contact.lastname : prev.lastname || parsedData.contact.lastname) || "",
+            email: (isEmbedded ? parsedData.contact.email : prev.email || parsedData.contact.email) || "",
+            phone: (isEmbedded ? parsedData.contact.phone : prev.phone || parsedData.contact.phone) || "",
           }));
 
           setAddress((prev) => ({
             ...prev,
-            cityName: prev.cityName || parsedData.address.cityName || prev.cityName,
-            countryName: prev.countryName || parsedData.address.countryName || prev.countryName,
-            address1: prev.address1 || parsedData.address.address1 || prev.address1,
-            address2: prev.address2 || parsedData.address.address2 || prev.address2,
+            cityName: (isEmbedded ? parsedData.address.cityName : prev.cityName || parsedData.address.cityName) || "",
+            countryName: (isEmbedded ? parsedData.address.countryName : prev.countryName || parsedData.address.countryName) || "",
+            address1: (isEmbedded ? parsedData.address.address1 : prev.address1 || parsedData.address.address1) || "",
+            address2: (isEmbedded ? parsedData.address.address2 : prev.address2 || parsedData.address.address2) || "",
           }));
 
-          setAboutMe((prev) => ({
-            ...prev,
-            summary: (() => {
-              const prevIsValid = isLikelyHumanText(prev.summary || "", 30);
-              const nextIsValid = isLikelyHumanText(parsedData.aboutMe.summary || "", 30);
-
-              if (!prevIsValid && nextIsValid) return parsedData.aboutMe.summary;
-              if (!prevIsValid && !nextIsValid) return "";
-              return prev.summary || (nextIsValid ? parsedData.aboutMe.summary : prev.summary);
-            })(),
-          }));
+          if (parsedData.aboutMe.summary) {
+            setAboutMe((prev) => ({
+              ...prev,
+              summary: isEmbedded ? parsedData.aboutMe.summary : (prev.summary || parsedData.aboutMe.summary),
+            }));
+          }
 
           if (parsedData.experience.length > 0) {
-            setExperience((prev) => (prev.length > 0 ? prev : parsedData.experience));
-          }
-          if (parsedData.education.length > 0) {
-            setEducation((prev) => (prev.length > 0 ? prev : parsedData.education));
-          }
-          if (parsedData.skills.length > 0) {
-            setSkills((prev) => {
-              const existing = prev.filter((item: string) => item.trim() !== "");
-              if (existing.length > 0) return prev;
-              return parsedData.skills.filter((s: string) => s.trim() !== "");
+            setExperience((prev) => {
+              if (!isEmbedded) {
+                const hasContent = prev.some((e: any) => e.jobTitle || e.company);
+                return hasContent ? prev : parsedData.experience;
+              }
+              return parsedData.experience;
             });
           }
+          if (parsedData.education.length > 0) {
+            setEducation((prev) => {
+              if (!isEmbedded) {
+                const hasContent = prev.some((e: any) => e.school || e.degree);
+                return hasContent ? prev : parsedData.education;
+              }
+              return parsedData.education;
+            });
+          }
+          if (parsedData.skills.length > 0) {
+            setSkills(() => [...parsedData.skills.filter((s: string) => s.trim() !== ""), ""]);
+          }
           if (parsedData.languages.length > 0) {
-            setLanguages((prev) => (prev.length > 0 ? prev : parsedData.languages));
+            setLanguages(() => parsedData.languages);
+          }
+          if (parsedData.hobbies && parsedData.hobbies.length > 0) {
+            setHobbies(() => [...parsedData.hobbies.filter((h: string) => h.trim() !== ""), ""]);
           }
           
           console.log("=== AUTO-FILL SUMMARY ===");
@@ -1160,6 +1351,7 @@ const WizardForm = () => {
           console.log("Education entries:", parsedData.education.length);
           console.log("Skills:", parsedData.skills.length);
           console.log("Languages:", parsedData.languages.length);
+          console.log("Hobbies:", parsedData.hobbies?.length || 0);
           console.log("=========================");
           
           console.log("Upload complete, navigating to template selection");
@@ -1200,7 +1392,7 @@ const WizardForm = () => {
             isDark={isDark}
             onCreateResume={handleNext}
             onUploadResume={handleUploadResume}
-            uploadComingSoon={true}
+            uploadComingSoon={false}
             toggleDarkMode={toggleDarkMode}
             toggleAnim={toggleAnim}
           />
@@ -1623,7 +1815,7 @@ const WizardForm = () => {
               <TouchableOpacity
                 style={[draftStyles.button, draftStyles.discardButton, { borderColor: isDark ? "#E53935" : "#D32F2F" }]}
                 onPress={async () => {
-                  await clearDraft();
+                  await resetForm();
                   setShowDraftPrompt(false);
                 }}
               >
